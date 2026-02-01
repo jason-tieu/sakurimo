@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClientFromRequest } from '@/lib/supabase/serverClient';
-import { createServiceClient, authenticateUserFromToken } from '@/lib/server/supabase';
 
-// Ensure this runs on Node.js runtime (not Edge)
 export const runtime = 'nodejs';
 
-// CORS configuration
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://sakurimo.vercel.app', // Add your production domain
-];
+const allowedOrigins = ['http://localhost:3000', 'https://sakurimo.vercel.app'];
 
 function checkCORS(request: NextRequest): boolean {
   const origin = request.headers.get('origin');
@@ -18,7 +12,6 @@ function checkCORS(request: NextRequest): boolean {
 
 export async function GET(request: NextRequest) {
   try {
-    // CORS check
     if (!checkCORS(request)) {
       return NextResponse.json(
         { success: false, error: 'CORS policy violation' },
@@ -26,68 +19,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const supabase = createClientFromRequest(request);
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
       return NextResponse.json(
-        { success: false, error: 'Authorization header with Bearer token is required.' },
+        { success: false, error: 'You must be signed in.' },
         { status: 401 }
       );
     }
 
-    const accessToken = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-    // Authenticate user using service client
-    let user;
-    try {
-      user = await authenticateUserFromToken(accessToken);
-    } catch (error) {
-      console.error('Authentication error:', error);
-      return NextResponse.json(
-        { success: false, error: 'Invalid or expired access token.' },
-        { status: 401 }
-      );
-    }
-
-    console.log('Fetching connections for user:', {
-      id: user.id,
-      email: user.email
-    });
-
-    // Create anon client for database operations (respects RLS)
-    const anonClient = createClientFromRequest(request);
-
-    // Fetch all LMS connections for this user
-    const { data: connections, error: connectionsError } = await anonClient
+    const { data: connections, error } = await supabase
       .from('lms_connections')
-      .select('*')
+      .select('id, owner_id, platform, institution, base_url, display_name, last_synced_at, created_at, updated_at')
       .eq('owner_id', user.id)
-      .order('created_at', { ascending: false });
+      .order('updated_at', { ascending: false });
 
-    if (connectionsError) {
-      console.error('Error fetching connections:', connectionsError);
+    if (error) {
+      console.error('Error fetching connections:', error);
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Failed to fetch connections.',
-          details: connectionsError.message 
-        },
+        { success: false, error: 'Failed to fetch connections.', details: error.message },
         { status: 500 }
       );
     }
 
-    console.log('Successfully fetched connections:', {
-      count: connections?.length || 0,
-      userId: user.id
-    });
-
     return NextResponse.json({
       success: true,
-      connections: connections || []
+      connections: connections ?? [],
     });
-
-  } catch (error) {
-    console.error('Integrations fetch error:', error);
+  } catch (err) {
+    console.error('Integrations fetch error:', err);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch integrations. Please try again.' },
       { status: 500 }

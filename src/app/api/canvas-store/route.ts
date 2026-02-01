@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClientFromRequest } from '@/lib/supabase/serverClient';
-import { createServiceClient, authenticateUserFromToken } from '@/lib/server/supabase';
-import { encryptToken } from '@/lib/encryption';
+import { createServiceClient } from '@/lib/server/supabase';
+import { encryptToken } from '@/lib/server/encryption';
 import { isAllowedCanvasHost } from '@/lib/institutions';
 
-// Ensure this runs on Node.js runtime (not Edge)
 export const runtime = 'nodejs';
 
-// CORS configuration
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://sakurimo.vercel.app', // Add your production domain
-];
+const allowedOrigins = ['http://localhost:3000', 'https://sakurimo.vercel.app'];
 
 function checkCORS(request: NextRequest): boolean {
   const origin = request.headers.get('origin');
@@ -20,7 +15,6 @@ function checkCORS(request: NextRequest): boolean {
 
 export async function POST(request: NextRequest) {
   try {
-    // CORS check
     if (!checkCORS(request)) {
       return NextResponse.json(
         { success: false, error: 'CORS policy violation' },
@@ -28,22 +22,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { base_url, token, profile } = await request.json();
-    
-    console.log('Canvas store request received:', {
+    const body = await request.json();
+    const {
+      platform = 'canvas',
+      institution = 'QUT',
       base_url,
-      hasToken: !!token,
-      profile: profile?.name || 'No profile'
-    });
+      display_name,
+      token,
+    } = body as {
+      platform?: string;
+      institution?: string;
+      base_url?: string;
+      display_name?: string;
+      token?: string;
+    };
 
-    // Security check: validate base URL is whitelisted
     if (!base_url || !isAllowedCanvasHost(base_url)) {
       return NextResponse.json(
         { success: false, error: 'Invalid Canvas host. Only whitelisted universities are supported.' },
         { status: 400 }
       );
     }
-
     if (!token || typeof token !== 'string') {
       return NextResponse.json(
         { success: false, error: 'Access token is required.' },
@@ -51,224 +50,124 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const supabase = createClientFromRequest(request);
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error('Canvas store auth error:', userError);
       return NextResponse.json(
-        { success: false, error: 'Authorization header with Bearer token is required.' },
+        { success: false, error: 'You must be signed in to connect Canvas.' },
         { status: 401 }
       );
     }
 
-    const accessToken = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-    // Authenticate user using service client
-    let user;
-    try {
-      user = await authenticateUserFromToken(accessToken);
-    } catch (error) {
-      console.error('Authentication error:', error);
-      return NextResponse.json(
-        { success: false, error: 'Invalid or expired access token.' },
-        { status: 401 }
-      );
-    }
-
-    console.log('Authenticated user:', {
-      id: user.id,
-      email: user.email,
-      name: user.user_metadata?.full_name || 'Unknown'
-    });
-
-    // Create service client for database operations
     const serviceClient = createServiceClient();
-    const anonClient = createClientFromRequest(request);
+    const now = new Date().toISOString();
 
-    // Check for existing Canvas connection for this user and base_url
-    console.log('Checking for existing Canvas connection:', {
-      owner_id: user.id,
-      provider: 'canvas',
-      account_identifier: base_url
-    });
-
-    const { data: existingConnection, error: fetchError } = await anonClient
+    const { data: existingConnection } = await supabase
       .from('lms_connections')
-      .select('id, status, access_meta')
+      .select('id')
       .eq('owner_id', user.id)
-      .eq('provider', 'canvas')
-      .eq('account_identifier', base_url)
-      .single();
+      .eq('platform', platform)
+      .maybeSingle();
 
-    let connectionId: string;
-    let isUpdate = false;
+    const connectionId = existingConnection?.id ?? crypto.randomUUID();
+    const isUpdate = !!existingConnection;
 
-    if (existingConnection) {
-      // Update existing connection
-      connectionId = existingConnection.id;
-      isUpdate = true;
-      console.log('Found existing connection, updating:', {
-        connectionId,
-        currentStatus: existingConnection.status
-      });
-    } else {
-      // Create new connection
-      connectionId = crypto.randomUUID();
-      isUpdate = false;
-      console.log('No existing connection found, creating new one:', {
-        connectionId
-      });
-    }
-
-    // Encrypt the token using AES-GCM
-    let encryptedData;
-    try {
-      encryptedData = encryptToken(token);
-    } catch (error) {
-      console.error('Encryption error:', error);
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Failed to encrypt token.',
-          details: error instanceof Error ? error.message : 'Unknown encryption error'
-        },
-        { status: 500 }
-      );
-    }
-
-    // Upsert the connection in lms_connections
-    const connectionData = {
+    const connectionPayload = {
       id: connectionId,
       owner_id: user.id,
-      provider: 'canvas',
-      account_identifier: base_url,
-      access_meta: {
-        profile: profile || null,
-        verified_at: new Date().toISOString(),
-        last_synced_at: existingConnection?.access_meta?.last_synced_at || null
-      },
-      status: 'connected'
+      platform,
+      institution: institution ?? 'QUT',
+      base_url: base_url.replace(/\/$/, ''),
+      display_name: display_name ?? null,
+      last_synced_at: existingConnection ? undefined : null,
+      updated_at: now,
     };
 
-    console.log(`Attempting to ${isUpdate ? 'update' : 'insert'} lms_connections:`, {
-      connectionId,
-      owner_id: user.id,
-      provider: 'canvas',
-      account_identifier: base_url,
-      status: 'connected',
-      isUpdate
-    });
-
-    const { data: connectionResult, error: connectionError } = isUpdate
-      ? await anonClient
+    const { error: connectionError } = isUpdate
+      ? await supabase
           .from('lms_connections')
-          .update(connectionData)
+          .update({
+            institution: connectionPayload.institution,
+            base_url: connectionPayload.base_url,
+            display_name: connectionPayload.display_name,
+            updated_at: connectionPayload.updated_at,
+          })
           .eq('id', connectionId)
-          .select()
-          .single()
-      : await anonClient
-          .from('lms_connections')
-          .insert(connectionData)
-          .select()
-          .single();
+          .eq('owner_id', user.id)
+      : await supabase.from('lms_connections').insert({
+          ...connectionPayload,
+          created_at: now,
+        });
 
     if (connectionError) {
       console.error('Error storing connection:', connectionError);
       return NextResponse.json(
-        { 
-          success: false, 
-          error: `Failed to ${isUpdate ? 'update' : 'store'} connection in database.`,
-          details: connectionError.message 
+        {
+          success: false,
+          error: `Failed to ${isUpdate ? 'update' : 'store'} connection.`,
+          details: connectionError.message,
         },
         { status: 500 }
       );
     }
 
-    console.log(`Successfully ${isUpdate ? 'updated' : 'stored'} connection:`, connectionResult);
+    let encryptedData: { ciphertext: string; iv: string };
+    try {
+      encryptedData = encryptToken(token);
+    } catch (err) {
+      console.error('Encryption error:', err);
+      if (!isUpdate) {
+        await supabase.from('lms_connections').delete().eq('id', connectionId).eq('owner_id', user.id);
+      }
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to encrypt token.',
+          details: err instanceof Error ? err.message : 'Unknown error',
+        },
+        { status: 500 }
+      );
+    }
 
-    // Upsert the encrypted token in lms_secrets using service client
-    console.log(`Attempting to ${isUpdate ? 'update' : 'insert'} lms_secrets:`, {
+    const secretPayload = {
       connection_id: connectionId,
-      hasEncryptedToken: !!encryptedData.ciphertext,
-      hasIV: !!encryptedData.iv
-    });
-
-    const secretData = {
-      connection_id: connectionId,
-      ciphertext_base64: encryptedData.ciphertext,
-      iv_base64: encryptedData.iv
+      token_ciphertext: encryptedData.ciphertext,
+      token_iv: encryptedData.iv,
+      updated_at: now,
     };
 
-    const { error: secretError } = isUpdate
-      ? await serviceClient
-          .from('lms_secrets')
-          .upsert(secretData, { 
-            onConflict: 'connection_id',
-            ignoreDuplicates: false 
-          })
-      : await serviceClient
-          .from('lms_secrets')
-          .insert(secretData);
+    const { error: secretError } = await serviceClient
+      .from('lms_secrets')
+      .upsert(
+        { ...secretPayload, created_at: isUpdate ? undefined : now },
+        { onConflict: 'connection_id' }
+      );
 
     if (secretError) {
       console.error('Error storing secret:', secretError);
-      // Clean up the connection if secret storage fails
       if (!isUpdate) {
-        await anonClient
-          .from('lms_connections')
-          .delete()
-          .eq('id', connectionId);
+        await supabase.from('lms_connections').delete().eq('id', connectionId).eq('owner_id', user.id);
       }
-      
       return NextResponse.json(
-        { 
-          success: false, 
-          error: `Failed to ${isUpdate ? 'update' : 'store'} encrypted token.`,
-          details: secretError.message 
+        {
+          success: false,
+          error: 'Failed to store encrypted token.',
+          details: secretError.message,
         },
         { status: 500 }
       );
     }
-
-    console.log(`Successfully ${isUpdate ? 'updated' : 'stored'} encrypted token`);
-
-    // Also create/update lms_accounts record for profile data
-    if (profile) {
-      const accountData = {
-        owner_id: user.id,
-        provider: 'canvas',
-        base_url: base_url,
-        external_user_id: profile.id.toString(),
-      };
-
-      const { error: accountError } = await anonClient
-        .from('lms_accounts')
-        .upsert(accountData, {
-          onConflict: 'owner_id,provider,base_url',
-          ignoreDuplicates: false,
-        });
-
-      if (accountError) {
-        console.error('Error creating/updating lms_accounts:', accountError);
-        // Don't fail the entire operation if account creation fails
-      } else {
-        console.log('Successfully created/updated lms_accounts record');
-      }
-    }
-
-    console.log(`Successfully ${isUpdate ? 'updated' : 'stored'} Canvas connection:`, {
-      connectionId,
-      base_url,
-      profile: profile?.name || 'Unknown',
-      userId: user.id,
-      action: isUpdate ? 'updated' : 'created'
-    });
 
     return NextResponse.json({
       success: true,
       connectionId,
-      action: isUpdate ? 'updated' : 'created'
+      action: isUpdate ? 'updated' : 'created',
     });
-
   } catch (error) {
     console.error('Canvas storage error:', error);
     return NextResponse.json(

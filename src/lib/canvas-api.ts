@@ -1,10 +1,9 @@
 /**
- * Canvas API integration functions
- * Handles communication with Canvas Edge Functions
+ * Canvas API integration functions (client).
+ * Store uses session (cookies). Verify uses POST body only. Sync units uses Bearer token.
  */
 
 import { isAllowedCanvasHost } from './institutions';
-import { CanvasSelfProfile, LMSAccount } from './types';
 
 export interface CanvasProfile {
   id: number;
@@ -27,48 +26,32 @@ export interface CanvasStoreResponse {
 }
 
 export interface CanvasSyncResponse {
-  success: boolean;
-  message?: string;
-  syncedAt?: string;
-  disconnected?: boolean;
+  ok: boolean;
   error?: string;
+  added?: number;
+  updated?: number;
+  skipped?: number;
+  total?: number;
+  errors?: number;
 }
 
 /**
- * Get the current user's access token
- */
-function getAccessToken(): string {
-  // This will be called from components that have access to the session
-  // We'll pass the token as a parameter to avoid circular dependencies
-  throw new Error('getAccessToken must be called with a token parameter');
-}
-
-/**
- * Verify Canvas access token with the specified base URL
+ * Verify Canvas access token with the specified base URL (before storing).
  */
 export async function verifyCanvasToken(baseUrl: string, token: string): Promise<CanvasVerifyResponse> {
-  // Security check: ensure the base URL is whitelisted
   if (!isAllowedCanvasHost(baseUrl)) {
     throw new Error('Invalid Canvas host. Only whitelisted universities are supported.');
   }
-
   try {
     const response = await fetch('/api/canvas-verify', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        base_url: baseUrl,
-        token: token,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base_url: baseUrl, token }),
     });
-
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to verify Canvas token');
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to verify Canvas token');
     }
-
     return await response.json();
   } catch (error) {
     console.error('Canvas verification error:', error);
@@ -77,42 +60,32 @@ export async function verifyCanvasToken(baseUrl: string, token: string): Promise
 }
 
 /**
- * Store Canvas connection after successful verification
+ * Store Canvas connection after verification. Uses session (cookies); no Bearer token.
  */
 export async function storeCanvasConnection(
-  baseUrl: string, 
-  token: string, 
-  profile: CanvasProfile | undefined,
-  accessToken: string
+  baseUrl: string,
+  token: string,
+  _profile?: CanvasProfile | undefined
 ): Promise<CanvasStoreResponse> {
-  // Security check: ensure the base URL is whitelisted
   if (!isAllowedCanvasHost(baseUrl)) {
     throw new Error('Invalid Canvas host. Only whitelisted universities are supported.');
   }
-
-  if (!accessToken) {
-    throw new Error('Access token is required for storing Canvas connection');
-  }
-
   try {
     const response = await fetch('/api/canvas-store', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({
+        platform: 'canvas',
+        institution: 'QUT',
         base_url: baseUrl,
-        token: token,
-        profile: profile,
+        token,
       }),
     });
-
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to store Canvas connection');
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to store Canvas connection');
     }
-
     return await response.json();
   } catch (error) {
     console.error('Canvas storage error:', error);
@@ -121,66 +94,27 @@ export async function storeCanvasConnection(
 }
 
 /**
- * Sync Canvas data
+ * Sync Canvas units (POST /api/canvas/sync). Requires Bearer token.
  */
-export async function syncCanvasData(connectionId: string, accessToken: string): Promise<CanvasSyncResponse> {
+export async function syncCanvasUnits(accessToken: string): Promise<CanvasSyncResponse> {
   if (!accessToken) {
-    throw new Error('Access token is required for syncing Canvas data');
+    throw new Error('Access token is required for syncing');
   }
-
   try {
-    const response = await fetch('/api/canvas-sync', {
+    const response = await fetch('/api/canvas/sync', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({
-        connection_id: connectionId,
-      }),
     });
-
+    const data = await response.json();
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to sync Canvas data');
+      return { ok: false, error: data.error || 'Failed to sync Canvas data' };
     }
-
-    return await response.json();
+    return data;
   } catch (error) {
     console.error('Canvas sync error:', error);
-    throw new Error('Failed to sync Canvas data. Please try again.');
+    return { ok: false, error: 'Network error. Please check your connection and try again.' };
   }
-}
-
-/**
- * Map Canvas profile to LMS account fields
- */
-export function mapCanvasProfileToAccount(profile: CanvasSelfProfile, baseUrl: string): Partial<LMSAccount> {
-  const s = (v: string | null | undefined) => v?.trim();
-  const name = s(profile.name);
-  const short_name = s(profile.short_name);
-  const sortable_name = s(profile.sortable_name);
-  const avatar_url = s(profile.avatar_url);
-  const primary_email = s(profile.primary_email);
-  const login_id = s(profile.login_id);
-  const integration_id = s(profile.integration_id);
-  const time_zone = s(profile.time_zone);
-  const locale = s(profile.locale);
-  const effective_locale = s(profile.effective_locale);
-  const calendar_ics = s(profile.calendar?.ics);
-  return {
-    external_user_id: profile.id.toString(),
-    ...(name && { name }),
-    ...(short_name && { short_name }),
-    ...(sortable_name && { sortable_name }),
-    ...(avatar_url && { avatar_url }),
-    ...(primary_email && { primary_email }),
-    ...(login_id && { login_id }),
-    ...(integration_id && { integration_id }),
-    ...(time_zone && { time_zone }),
-    ...(locale && { locale }),
-    ...(effective_locale && { effective_locale }),
-    ...(calendar_ics && { calendar_ics }),
-    last_profile_sync_at: new Date().toISOString(),
-  };
 }

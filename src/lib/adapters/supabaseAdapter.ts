@@ -17,6 +17,8 @@ import { UNITS_TABLE, ASSIGNMENTS_TABLE, EXAMS_TABLE, EVENTS_TABLE, GRADE_ITEMS_
 import { cleanUnitTitle } from '../formatters/unitTitle';
 import { cleanUnitCode } from '../formatters/unitCode';
 
+const UNITS_SELECT = 'id, owner_id, platform, institution, external_id, code, title, year, semester, created_at, updated_at';
+
 export function createSupabaseStorage(supabase: SupabaseClient): StoragePort {
   return {
     // Units
@@ -34,8 +36,9 @@ export function createSupabaseStorage(supabase: SupabaseClient): StoragePort {
       
       const { data, error } = await supabase
         .from(UNITS_TABLE)
-        .select('id, owner_id, code, title, term, semester, year, term_display, campus, url, unit_url, instructor, credits, description, canvas_course_id, created_at, updated_at')
-        .order('created_at', { ascending: false });
+        .select(UNITS_SELECT)
+        .order('year', { ascending: false, nullsFirst: false })
+        .order('semester', { ascending: false, nullsFirst: false });
       
       if (error) {
         throw error;
@@ -47,7 +50,7 @@ export function createSupabaseStorage(supabase: SupabaseClient): StoragePort {
     async getUnit(id: string): Promise<Unit | null> {
       const { data, error } = await supabase
         .from(UNITS_TABLE)
-        .select('id, owner_id, code, title, term, semester, year, term_display, campus, url, unit_url, instructor, credits, description, canvas_course_id, created_at, updated_at')
+        .select(UNITS_SELECT)
         .eq('id', id)
         .single();
       
@@ -59,63 +62,48 @@ export function createSupabaseStorage(supabase: SupabaseClient): StoragePort {
     },
 
     async createUnit(unitData: Omit<Unit, 'id' | 'owner_id' | 'created_at'>): Promise<Unit> {
-      // Get current user for RLS
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
+
       if (userError) {
         throw new Error(`Failed to get user information: ${userError.message}`);
       }
-      
       if (!user) {
         throw new Error('Please sign in to add units.');
       }
 
-      // Clean the title and code
       const cleanedCode = cleanUnitCode(unitData.code);
       const cleanedTitle = cleanUnitTitle(unitData as Unit);
 
+      // Manual units: platform 'canvas', institution 'QUT', unique external_id (RLS sets owner_id)
       const payload = {
+        platform: unitData.platform ?? 'canvas',
+        institution: unitData.institution ?? 'QUT',
+        external_id: unitData.external_id,
         code: cleanedCode,
         title: cleanedTitle,
-        term: unitData.term,
-        semester: unitData.semester ?? null,
         year: unitData.year ?? null,
-        term_display: unitData.term_display ?? null,
-        campus: unitData.campus ?? null,
-        url: unitData.url ?? null,
-        unit_url: unitData.unit_url ?? null,
-        instructor: unitData.instructor ?? null,
-        credits: unitData.credits ?? null,
-        description: unitData.description ?? null,
-        canvas_course_id: unitData.canvas_course_id ?? null,
+        semester: unitData.semester ?? null,
         updated_at: unitData.updated_at ?? null,
       };
-      
-      try {
-        const { data, error } = await supabase
-          .from(UNITS_TABLE)
-          .insert([payload])
-          .select('id, owner_id, code, title, term, semester, year, term_display, campus, url, unit_url, instructor, credits, description, canvas_course_id, created_at, updated_at')
-          .single();
-        
-        if (error) {
-          throw new Error(`Database error: ${error.message} (${error.code})`);
-        }
-        
-        if (!data) {
-          throw new Error('No data returned from database insert');
-        }
-        
-        return data;
-      } catch (insertError) {
-        throw insertError;
+
+      const { data, error } = await supabase
+        .from(UNITS_TABLE)
+        .insert([payload])
+        .select(UNITS_SELECT)
+        .single();
+
+      if (error) {
+        throw new Error(`Database error: ${error.message} (${error.code})`);
       }
+      if (!data) {
+        throw new Error('No data returned from database insert');
+      }
+      return data;
     },
 
     async updateUnit(id: string, updates: Partial<Omit<Unit, 'id' | 'owner_id' | 'created_at'>>): Promise<Unit | null> {
-      // Clean the title and code if they're being updated
       const processedUpdates = { ...updates };
-      if (updates.code) {
+      if (updates.code !== undefined) {
         processedUpdates.code = cleanUnitCode(updates.code);
       }
       if (updates.title != null && updates.code != null) {
@@ -126,7 +114,7 @@ export function createSupabaseStorage(supabase: SupabaseClient): StoragePort {
         .from(UNITS_TABLE)
         .update(processedUpdates)
         .eq('id', id)
-        .select('id, owner_id, code, title, term, semester, year, term_display, campus, url, unit_url, instructor, credits, description, canvas_course_id, created_at, updated_at')
+        .select(UNITS_SELECT)
         .single();
       
       if (error) {
@@ -482,12 +470,20 @@ export function createSupabaseStorage(supabase: SupabaseClient): StoragePort {
         grades: GradeItem[];
       };
 
-      // Clear existing data first
       await this.clearAll();
 
-      // Insert in order to respect foreign key constraints
+      // Only insert units that match current schema (id, owner_id, platform, institution, external_id, code, title, year, semester, created_at, updated_at)
       if (imported.units.length > 0) {
-        await supabase.from(UNITS_TABLE).insert(imported.units);
+        const validUnits = imported.units.filter(
+          (u): u is Unit =>
+            typeof u.id === 'string' &&
+            typeof u.owner_id === 'string' &&
+            typeof u.external_id === 'string' &&
+            typeof u.title === 'string'
+        );
+        if (validUnits.length > 0) {
+          await supabase.from(UNITS_TABLE).insert(validUnits);
+        }
       }
       if (imported.assignments.length > 0) {
         await supabase.from(ASSIGNMENTS_TABLE).insert(imported.assignments);

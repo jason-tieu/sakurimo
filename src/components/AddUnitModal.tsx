@@ -23,9 +23,6 @@ interface FormData {
   title: string;
   semester: string;
   year: string;
-  campus: string;
-  instructor: string;
-  url: string;
 }
 
 interface FormErrors {
@@ -33,7 +30,6 @@ interface FormErrors {
   title?: string;
   semester?: string;
   year?: string;
-  url?: string;
 }
 
 export function AddUnitModal({ open, onOpenChange, onUnitAdded }: AddUnitModalProps) {
@@ -47,9 +43,6 @@ export function AddUnitModal({ open, onOpenChange, onUnitAdded }: AddUnitModalPr
     title: '',
     semester: '',
     year: '',
-    campus: '',
-    instructor: '',
-    url: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -68,15 +61,6 @@ export function AddUnitModal({ open, onOpenChange, onUnitAdded }: AddUnitModalPr
     }
     if (!formData.year) {
       newErrors.year = 'Year is required';
-    }
-
-    // URL validation
-    if (formData.url && formData.url.trim()) {
-      try {
-        new URL(formData.url);
-      } catch {
-        newErrors.url = 'Please enter a valid URL';
-      }
     }
 
     setErrors(newErrors);
@@ -110,23 +94,16 @@ export function AddUnitModal({ open, onOpenChange, onUnitAdded }: AddUnitModalPr
     setIsSubmitting(true);
 
     try {
-      const term = `Semester ${formData.semester}, ${formData.year}`;
       const semesterNum = Number(formData.semester);
       const yearNum = Number(formData.year);
       const unitData: Omit<Unit, 'id' | 'owner_id' | 'created_at'> = {
+        platform: 'canvas',
+        institution: 'QUT',
+        external_id: `manual-${crypto.randomUUID()}`,
         code: formData.code.trim(),
         title: formData.title.trim(),
-        term,
-        semester: Number.isNaN(semesterNum) ? null : semesterNum,
         year: Number.isNaN(yearNum) ? null : yearNum,
-        term_display: term,
-        campus: formData.campus.trim() || null,
-        url: formData.url.trim() || null,
-        unit_url: formData.url.trim() || null,
-        instructor: formData.instructor.trim() || null,
-        credits: null,
-        description: null,
-        canvas_course_id: null,
+        semester: Number.isNaN(semesterNum) ? null : semesterNum,
         updated_at: null,
       };
 
@@ -157,9 +134,6 @@ export function AddUnitModal({ open, onOpenChange, onUnitAdded }: AddUnitModalPr
       title: '',
       semester: '',
       year: '',
-      campus: '',
-      instructor: '',
-      url: '',
     });
     setErrors({});
     onOpenChange(false);
@@ -291,55 +265,6 @@ export function AddUnitModal({ open, onOpenChange, onUnitAdded }: AddUnitModalPr
               )}
             </div>
 
-            {/* Campus */}
-            <div>
-              <label htmlFor="campus" className="block text-sm font-medium text-foreground mb-1">
-                Campus
-              </label>
-              <Input
-                id="campus"
-                type="text"
-                placeholder="e.g., St Lucia"
-                value={formData.campus}
-                onChange={(e) => handleInputChange('campus', e.target.value)}
-              />
-            </div>
-
-            {/* Instructor */}
-            <div>
-              <label htmlFor="instructor" className="block text-sm font-medium text-foreground mb-1">
-                Instructor
-              </label>
-              <Input
-                id="instructor"
-                type="text"
-                placeholder="e.g., Dr. Sarah Chen"
-                value={formData.instructor}
-                onChange={(e) => handleInputChange('instructor', e.target.value)}
-              />
-            </div>
-
-            {/* URL */}
-            <div>
-              <label htmlFor="url" className="block text-sm font-medium text-foreground mb-1">
-                Unit URL
-              </label>
-              <Input
-                id="url"
-                type="url"
-                placeholder="https://learn.uq.edu.au/course/view.php?id=12345"
-                value={formData.url}
-                onChange={(e) => handleInputChange('url', e.target.value)}
-                className={errors.url ? 'border-red-500 focus-visible:ring-red-500' : ''}
-                aria-invalid={!!errors.url}
-                aria-describedby={errors.url ? 'url-error' : undefined}
-              />
-              {errors.url && (
-                <p id="url-error" className="text-sm text-red-500 mt-1">
-                  {errors.url}
-                </p>
-              )}
-            </div>
           </div>
 
           {/* Error Summary */}

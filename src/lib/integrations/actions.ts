@@ -1,29 +1,17 @@
 'use client';
 
-import { CanvasSyncResponse } from '@/lib/canvas/types';
-
 export interface SyncCanvasResult {
   ok: boolean;
   error?: string;
-  summary?: {
-    profileSaved: boolean;
-    added: number;
-    updated: number;
-    skipped: number;
-    total: number;
-    units: Array<{
-      id: string;
-      code: string | null;
-      title: string;
-      semester?: number | null;
-      year?: number | null;
-      url?: string | null;
-    }>;
-  };
+  added?: number;
+  updated?: number;
+  skipped?: number;
+  total?: number;
+  errors?: number;
 }
 
 /**
- * Sync Canvas data and profile
+ * Sync Canvas units (POST /api/canvas/sync). Requires Bearer token.
  */
 export async function syncCanvas(accessToken: string): Promise<SyncCanvasResult> {
   try {
@@ -31,36 +19,23 @@ export async function syncCanvas(accessToken: string): Promise<SyncCanvasResult>
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
-
-    const data: CanvasSyncResponse = await response.json();
-
+    const data = await response.json();
     if (!response.ok) {
-      return {
-        ok: false,
-        error: data.error || 'Failed to sync Canvas data',
-      };
+      return { ok: false, error: data.error || 'Failed to sync Canvas data' };
     }
-
     if (!data.ok) {
-      return {
-        ok: false,
-        error: data.error || 'Canvas sync failed',
-      };
+      return { ok: false, error: data.error || 'Canvas sync failed' };
     }
-
     return {
       ok: true,
-      summary: {
-        profileSaved: data.profileSaved || false,
-        added: data.added || 0,
-        updated: data.updated || 0,
-        skipped: data.skipped || 0,
-        total: data.total || 0,
-        units: data.units || [],
-      },
+      added: data.added ?? 0,
+      updated: data.updated ?? 0,
+      skipped: data.skipped ?? 0,
+      total: data.total ?? 0,
+      errors: data.errors ?? 0,
     };
   } catch (error) {
     console.error('Canvas sync error:', error);

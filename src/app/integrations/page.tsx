@@ -28,79 +28,54 @@ export default function IntegrationsPage() {
   const [disconnectingConnections, setDisconnectingConnections] = useState<Set<string>>(new Set());
   const { session, user, isLoading: authLoading } = useSession();
 
-  // Convert LMS connections to integration format
+  // Convert LMS connections to integration format (new schema: platform, last_synced_at)
   const convertConnectionsToIntegrations = (connections: LMSConnection[]): Integration[] => {
     const integrationMap = new Map<string, Integration>();
-    
-    // Initialize with default integrations
     const defaultIntegrations: Integration[] = [
-      {
-        id: 'canvas',
-        name: 'Canvas LMS',
-        type: 'canvas',
-        status: 'disconnected'
-      }
+      { id: 'canvas', name: 'Canvas LMS', type: 'canvas', status: 'disconnected' },
     ];
-
-    // Add default integrations to map
-    defaultIntegrations.forEach(integration => {
-      integrationMap.set(integration.id, integration);
-    });
-
-    // Update with real connection data
-    connections.forEach(connection => {
-      if (connection.provider === 'canvas') {
-        const lastSync = connection.access_meta.last_synced_at
-          ? new Date(connection.access_meta.last_synced_at)
+    defaultIntegrations.forEach((integration) => integrationMap.set(integration.id, integration));
+    connections.forEach((connection) => {
+      if (connection.platform === 'canvas') {
+        const lastSync = connection.last_synced_at
+          ? new Date(connection.last_synced_at)
           : undefined;
         integrationMap.set('canvas', {
           id: 'canvas',
           name: 'Canvas LMS',
           type: 'canvas',
-          status: connection.status,
+          status: 'connected',
           ...(lastSync !== undefined && { lastSync }),
-          connectionId: connection.id
+          connectionId: connection.id,
         });
       }
     });
-
     return Array.from(integrationMap.values());
   };
 
-  // Fetch connections from database
+  // Fetch connections from database (uses cookies)
   const loadConnections = async () => {
-    if (!session?.access_token) return;
-
+    if (!user) return;
     try {
       setIsLoading(true);
-      const response = await fetchLMSConnections(session.access_token);
+      const response = await fetchLMSConnections();
       if (response.success && response.connections) {
         const integrations = convertConnectionsToIntegrations(response.connections);
         setIntegrations(integrations);
-        console.log('Loaded connections:', integrations);
       }
     } catch (error) {
       console.error('Failed to load connections:', error);
-      // Fallback to default integrations
       setIntegrations([
-        {
-          id: 'canvas',
-          name: 'Canvas LMS',
-          type: 'canvas',
-          status: 'disconnected'
-        }
+        { id: 'canvas', name: 'Canvas LMS', type: 'canvas', status: 'disconnected' },
       ]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Load connections when session is available
   useEffect(() => {
-    if (session?.access_token && !authLoading) {
-      loadConnections();
-    }
-  }, [session?.access_token, authLoading]);
+    if (user && !authLoading) loadConnections();
+  }, [user, authLoading]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -130,20 +105,16 @@ export default function IntegrationsPage() {
   };
 
   const handleCanvasConnect = async (baseUrl: string, token: string) => {
-    if (!session?.access_token) {
+    if (!user) {
       throw new Error('You must be signed in to connect Canvas');
     }
-
     setIsConnecting(true);
     try {
-      // Verify the token first
       const verifyResult = await verifyCanvasToken(baseUrl, token);
       if (!verifyResult.success) {
         throw new Error(verifyResult.error || 'Token verification failed');
       }
-
-      // Store the connection with profile data and access token
-      const storeResult = await storeCanvasConnection(baseUrl, token, verifyResult.profile, session.access_token);
+      const storeResult = await storeCanvasConnection(baseUrl, token, verifyResult.profile);
       if (!storeResult.success) {
         throw new Error(storeResult.error || 'Failed to store connection');
       }
@@ -174,73 +145,40 @@ export default function IntegrationsPage() {
       console.error('Missing access token for sync');
       return;
     }
-
-    setSyncingConnections(prev => new Set(prev).add(integration.id));
-    
+    setSyncingConnections((prev) => new Set(prev).add(integration.id));
     try {
-      console.log('Syncing Canvas data and profile...');
-      
-      
       const result = await syncCanvas(session.access_token);
-      
-      if (result.ok && result.summary) {
-        const { added, updated, skipped, total, profileSaved } = result.summary;
-        
-        console.log('Canvas sync successful:', {
-          profileSaved,
-          added,
-          updated,
-          skipped,
-          total,
-        });
-        
-        // Show success message
-        const message = `Synced ✓ — ${added} added, ${updated} updated, ${skipped} skipped`;
-        console.log(message);
-        
-        // TODO: Show success toast with message
-        
-        // Reload connections to update last sync time
+      if (result.ok) {
+        const added = result.added ?? 0;
+        const updated = result.updated ?? 0;
+        const skipped = result.skipped ?? 0;
+        console.log('Canvas sync successful:', { added, updated, skipped });
         await loadConnections();
       } else {
         console.error('Canvas sync failed:', result.error);
-        
-        // Handle specific error cases
-        if (result.error?.includes('token expired') || result.error?.includes('reconnect')) {
-          console.log('Canvas token expired, user needs to reconnect');
-          // TODO: Show error toast: "Please reconnect Canvas"
-        } else {
-          // TODO: Show error toast with result.error
-        }
       }
     } catch (error) {
       console.error('Canvas sync error:', error);
-      // TODO: Show error toast
     } finally {
-      setSyncingConnections(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(integration.id);
-        return newSet;
+      setSyncingConnections((prev) => {
+        const next = new Set(prev);
+        next.delete(integration.id);
+        return next;
       });
     }
   };
 
   const handleDisconnect = async (integration: Integration) => {
-    if (!session?.access_token || !integration.connectionId) {
-      console.error('Missing access token or connection ID for disconnect');
+    if (!integration.connectionId) {
+      console.error('Missing connection ID for disconnect');
       return;
     }
-
     if (!confirm(`Are you sure you want to disconnect ${integration.name}? This will remove all synced data.`)) {
       return;
     }
-
-    setDisconnectingConnections(prev => new Set(prev).add(integration.id));
-    
+    setDisconnectingConnections((prev) => new Set(prev).add(integration.id));
     try {
-      console.log('Disconnecting Canvas connection:', integration.connectionId);
-      
-      const result = await disconnectLMSConnection(integration.connectionId, session.access_token);
+      const result = await disconnectLMSConnection(integration.connectionId);
       
       if (result.success) {
         console.log('Canvas disconnect successful');

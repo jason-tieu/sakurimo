@@ -1,24 +1,16 @@
 /**
  * Integrations API functions
- * Handles fetching and managing integration connections
+ * Uses session (cookies); pass credentials: 'include' for same-origin requests.
  */
 
 export interface LMSConnection {
   id: string;
   owner_id: string;
-  provider: string;
-  account_identifier: string;
-  status: 'connected' | 'disconnected' | 'error';
-  access_meta: {
-    profile?: {
-      id: number;
-      name: string;
-      email: string;
-      avatar_url?: string;
-    };
-    verified_at?: string;
-    last_synced_at?: string;
-  };
+  platform: string;
+  institution: string;
+  base_url: string;
+  display_name: string | null;
+  last_synced_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -29,27 +21,16 @@ export interface IntegrationsResponse {
   error?: string;
 }
 
-/**
- * Fetch all LMS connections for the current user
- */
-export async function fetchLMSConnections(accessToken: string): Promise<IntegrationsResponse> {
-  if (!accessToken) {
-    throw new Error('Access token is required for fetching connections');
-  }
-
+export async function fetchLMSConnections(): Promise<IntegrationsResponse> {
   try {
     const response = await fetch('/api/integrations', {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
+      credentials: 'include',
     });
-
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to fetch connections');
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to fetch connections');
     }
-
     return await response.json();
   } catch (error) {
     console.error('Integrations fetch error:', error);
@@ -57,31 +38,18 @@ export async function fetchLMSConnections(accessToken: string): Promise<Integrat
   }
 }
 
-/**
- * Disconnect an LMS connection
- */
-export async function disconnectLMSConnection(connectionId: string, accessToken: string): Promise<{ success: boolean; error?: string }> {
-  if (!accessToken) {
-    throw new Error('Access token is required for disconnecting');
-  }
-
+export async function disconnectLMSConnection(connectionId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch('/api/integrations/disconnect', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        connection_id: connectionId,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ connection_id: connectionId }),
     });
-
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to disconnect');
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to disconnect');
     }
-
     return await response.json();
   } catch (error) {
     console.error('Disconnect error:', error);

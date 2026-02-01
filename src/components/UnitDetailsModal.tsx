@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, ExternalLink, Copy, Calendar, User, MapPin, BookOpen, Clock } from 'lucide-react';
+import { X, Clock } from 'lucide-react';
 import { Unit } from '@/lib/types';
 import { formatPeriod } from '@/lib/formatters/period';
-import { cleanUnitTitle } from '@/lib/formatters/unitTitle';
 import UIButton from '@/components/UIButton';
 
 interface UnitDetailsModalProps {
@@ -161,134 +160,19 @@ export function UnitDetailsModal({ unitId, open, onClose }: UnitDetailsModalProp
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Title</label>
                 <p className="text-lg mt-1 leading-relaxed whitespace-pre-wrap">
-                  {cleanUnitTitle(unit)}
+                  {unit.title}
                 </p>
               </div>
 
-              {/* Description */}
-              {unit.description && (
+              {/* External ID (e.g. Canvas course ID) */}
+              {unit.external_id && (
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Description</label>
-                  <div className="mt-1 p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap line-clamp-4">
-                      {unit.description}
-                    </p>
-                    {unit.description.length > 200 && (
-                      <button
-                        onClick={() => setShowRawData(!showRawData)}
-                        className="text-xs text-brand hover:underline mt-2"
-                      >
-                        {showRawData ? 'Show less' : 'Show more'}
-                      </button>
-                    )}
-                  </div>
+                  <label className="text-sm font-medium text-muted-foreground">External ID</label>
+                  <p className="text-sm font-mono mt-1 bg-muted/50 px-3 py-2 rounded-lg">
+                    {unit.external_id}
+                  </p>
                 </div>
               )}
-
-              {/* Links */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {unit.url && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                      <ExternalLink className="h-4 w-4" />
-                      Canvas Link
-                    </label>
-                    <div className="mt-1 flex gap-2">
-                      <a
-                        href={unit.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 text-sm text-brand hover:underline truncate bg-muted/50 px-3 py-2 rounded-lg"
-                      >
-                        {unit.url}
-                      </a>
-                      <UIButton
-                        variant="ghost"
-                        onClick={() => copyToClipboard(unit.url!)}
-                        className="p-2"
-                        aria-label="Copy Canvas link"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </UIButton>
-                    </div>
-                  </div>
-                )}
-
-                {unit.unit_url && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      ICS Calendar
-                    </label>
-                    <div className="mt-1 flex gap-2">
-                      <a
-                        href={unit.unit_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 text-sm text-brand hover:underline truncate bg-muted/50 px-3 py-2 rounded-lg"
-                      >
-                        {unit.unit_url}
-                      </a>
-                      <UIButton
-                        variant="ghost"
-                        onClick={() => copyToClipboard(unit.unit_url!)}
-                        className="p-2"
-                        aria-label="Copy ICS link"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </UIButton>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Additional Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {unit.instructor && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      Instructor
-                    </label>
-                    <p className="text-sm mt-1 bg-muted/50 px-3 py-2 rounded-lg">
-                      {unit.instructor}
-                    </p>
-                  </div>
-                )}
-
-                {unit.credits && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      Credits
-                    </label>
-                    <p className="text-sm mt-1 bg-muted/50 px-3 py-2 rounded-lg">
-                      {unit.credits}
-                    </p>
-                  </div>
-                )}
-
-                {unit.campus && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      Campus
-                    </label>
-                    <p className="text-sm mt-1 bg-muted/50 px-3 py-2 rounded-lg">
-                      {unit.campus}
-                    </p>
-                  </div>
-                )}
-
-                {unit.canvas_course_id && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Canvas ID</label>
-                    <p className="text-sm font-mono mt-1 bg-muted/50 px-3 py-2 rounded-lg">
-                      {unit.canvas_course_id}
-                    </p>
-                  </div>
-                )}
-              </div>
 
               {/* Timestamps */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-border">

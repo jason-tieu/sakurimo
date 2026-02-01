@@ -4,33 +4,39 @@
 
 import { CanvasCourse, CanvasLinkHeader } from '../canvas/types';
 import { createServiceClient } from './supabase';
+import { decryptToken } from './encryption';
 
 /**
- * Get Canvas token for user from lms_connections table
+ * Get Canvas token for user: read connection (platform=canvas), then lms_secrets (service role), decrypt.
  */
 export async function getCanvasTokenForUser(userId: string): Promise<string | null> {
   try {
     const serviceClient = createServiceClient();
-
-    // Get user's Canvas connection (server-only, contains OAuth tokens)
     const { data: connection, error: connectionError } = await serviceClient
       .from('lms_connections')
-      .select('access_token')
+      .select('id')
       .eq('owner_id', userId)
-      .eq('provider', 'canvas')
-      .single();
+      .eq('platform', 'canvas')
+      .maybeSingle();
 
-    if (connectionError || !connection) {
-      console.log('No Canvas connection found for user:', userId);
+    if (connectionError || !connection) return null;
+
+    const { data: secret, error: secretError } = await serviceClient
+      .from('lms_secrets')
+      .select('token_ciphertext, token_iv')
+      .eq('connection_id', connection.id)
+      .maybeSingle();
+
+    if (secretError || !secret) return null;
+
+    try {
+      return decryptToken({
+        ciphertext: secret.token_ciphertext,
+        iv: secret.token_iv,
+      });
+    } catch {
       return null;
     }
-
-    if (!connection.access_token) {
-      console.log('No access token found in Canvas connection for user:', userId);
-      return null;
-    }
-
-    return connection.access_token;
   } catch (error) {
     console.error('Error getting Canvas token for user:', userId, error);
     return null;
@@ -46,10 +52,9 @@ export async function fetchCanvasJson<T>(
   token: string
 ): Promise<T> {
   const url = `${baseUrl.replace(/\/$/, '')}${path}`;
-  
   const response = await fetch(url, {
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
   });
@@ -57,31 +62,21 @@ export async function fetchCanvasJson<T>(
   if (response.status === 401 || response.status === 403) {
     throw new Error('Canvas token expired; please reconnect');
   }
-
   if (!response.ok) {
     throw new Error(`Canvas API error: ${response.status} ${response.statusText}`);
   }
-
   return response.json();
 }
 
-/**
- * Parse Link header for pagination
- */
 function parseLinkHeader(linkHeader: string | null): CanvasLinkHeader {
-  if (!linkHeader) {
-    return {};
-  }
-
+  if (!linkHeader) return {};
   const links: CanvasLinkHeader = {};
   const linkRegex = /<([^>]+)>;\s*rel="([^"]+)"/g;
   let match;
-
   while ((match = linkRegex.exec(linkHeader)) !== null) {
     const [, url, rel] = match;
     links[rel as keyof CanvasLinkHeader] = url;
   }
-
   return links;
 }
 
@@ -96,11 +91,9 @@ export async function paginateCourses(
   let nextUrl: string | null = `${baseUrl.replace(/\/$/, '')}/api/v1/courses?include[]=enrollments&per_page=50`;
 
   while (nextUrl) {
-    console.log('Fetching courses page:', nextUrl);
-    
     const response = await fetch(nextUrl, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
@@ -108,22 +101,16 @@ export async function paginateCourses(
     if (response.status === 401 || response.status === 403) {
       throw new Error('Canvas token expired; please reconnect');
     }
-
     if (!response.ok) {
       throw new Error(`Canvas API error: ${response.status} ${response.statusText}`);
     }
 
     const courses: CanvasCourse[] = await response.json();
     allCourses.push(...courses);
-
-    // Check for next page
     const linkHeader = response.headers.get('Link');
     const links = parseLinkHeader(linkHeader);
     nextUrl = links.next || null;
-
-    console.log(`Fetched ${courses.length} courses, total: ${allCourses.length}`);
   }
 
-  console.log(`Completed pagination, total courses: ${allCourses.length}`);
   return allCourses;
 }

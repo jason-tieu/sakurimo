@@ -1,21 +1,18 @@
-/**
- * Legacy canvas-sync: verifies stored Canvas connection and returns profile.
- * For unit sync, use POST /api/canvas/sync with Bearer token.
- * Auth via cookies (same as verify-connection).
- */
-
 import { NextResponse } from 'next/server';
-import { createClientFromRequest } from '@/lib/supabase/serverClient';
+import { createClient } from '@/lib/supabase/serverClient';
 import { createServiceClient } from '@/lib/server/supabase';
 import { decryptToken } from '@/lib/server/encryption';
 import { isAllowedCanvasHost } from '@/lib/institutions';
-import { NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
 
-export async function POST(request: NextRequest) {
+/**
+ * Verify the user's stored Canvas connection: fetch connection, decrypt token, call Canvas GET /api/v1/users/self.
+ * Auth via session (cookies). Returns success + minimal profile (id, name) for UI.
+ */
+export async function GET() {
   try {
-    const supabase = createClientFromRequest(request);
+    const supabase = await createClient();
     const {
       data: { user },
       error: userError,
@@ -81,7 +78,7 @@ export async function POST(request: NextRequest) {
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
         return NextResponse.json(
-          { success: false, error: 'Canvas token expired; please reconnect.', disconnected: true },
+          { success: false, error: 'Canvas token expired or invalid; please reconnect.' },
           { status: 401 }
         );
       }
@@ -94,11 +91,13 @@ export async function POST(request: NextRequest) {
     const profile = await res.json();
     return NextResponse.json({
       success: true,
-      message: 'Connection verified',
-      profile: { id: profile.id, name: profile.name ?? profile.short_name ?? '' },
+      profile: {
+        id: profile.id,
+        name: profile.name ?? profile.short_name ?? '',
+      },
     });
   } catch (error) {
-    console.error('Canvas sync (verify) error:', error);
+    console.error('Verify connection error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to verify connection.' },
       { status: 500 }

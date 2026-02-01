@@ -1,23 +1,26 @@
 // Core university tracker types
 
+/** Authoritative shape for public.units (Supabase). */
 export interface Unit {
   id: string;
-  owner_id: string;          // from DB reads only
+  owner_id: string;          // from DB reads only; RLS enforces
+  platform: string;          // default 'canvas'
+  institution: string;       // default 'QUT'
+  external_id: string;       // Canvas course ID (string) or manual id
   code: string | null;
   title: string;
-  term: string | null;
-  semester: number | null;
   year: number | null;
-  term_display: string | null;
-  campus: string | null;
-  url: string | null;
-  unit_url: string | null;
-  instructor: string | null;
-  credits: number | null;
-  description: string | null;
-  canvas_course_id: number | null;
-  created_at: string;        // ISO string
+  semester: number | null;
+  created_at: string;       // ISO string
   updated_at: string | null; // ISO string
+}
+
+/** Derive term_display from year + semester (not stored in DB). */
+export function unitTermDisplay(u: { year?: number | null; semester?: number | null }): string {
+  if (u.year != null && u.semester != null) {
+    return `S${u.semester} ${u.year}`;
+  }
+  return 'N/A';
 }
 
 

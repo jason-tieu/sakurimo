@@ -1,50 +1,27 @@
 /**
- * Period formatting utilities for units
+ * Period formatting utilities for units.
+ * term_display is derived from year + semester (not stored).
  */
 
 export interface UnitPeriod {
-  term_display?: string | null;
   semester?: number | null;
   year?: number | null;
-  term?: string | null;
 }
 
 /**
- * Format period display for a unit
- * Prefer term_display if non-null and non-empty
- * else if semester && year → S${semester} ${year}
- * else if term (string) → term
- * else return "N/A"
+ * Format period display for a unit (derived from year + semester).
  */
 export function formatPeriod(u: UnitPeriod): string {
-  // Prefer term_display if available
-  if (u.term_display && u.term_display.trim()) {
-    return u.term_display.trim();
-  }
-
-  // Fallback to semester + year
-  if (u.semester && u.year) {
+  if (u.semester != null && u.year != null) {
     return `S${u.semester} ${u.year}`;
   }
-
-  // Fallback to term string
-  if (u.term && u.term.trim()) {
-    return u.term.trim();
-  }
-
-  // No period information available
-  return "N/A";
+  return 'N/A';
 }
 
 /**
- * Check if a unit has period information
- * Returns true if any period field has a value
+ * Check if a unit has period information (year and semester).
  */
 export function hasPeriod(u: UnitPeriod): boolean {
-  return Boolean(
-    u.term_display || 
-    (u.semester && u.year) || 
-    u.term
-  );
+  return u.year != null && u.semester != null;
 }
 

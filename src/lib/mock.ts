@@ -19,13 +19,11 @@ import {
 // Mock data for development and testing
 
 const baseUnit = {
-  semester: null as number | null,
+  platform: 'canvas',
+  institution: 'QUT',
+  external_id: '',
   year: null as number | null,
-  term_display: null as string | null,
-  unit_url: null as string | null,
-  credits: null as number | null,
-  description: null as string | null,
-  canvas_course_id: null as number | null,
+  semester: null as number | null,
   updated_at: null as string | null,
 };
 
@@ -33,39 +31,36 @@ export const mockUnits: Unit[] = [
   {
     id: '1',
     owner_id: 'mock-user-id',
+    ...baseUnit,
+    external_id: 'mock-1',
     code: 'COMP3506',
     title: 'Algorithms & Data Structures',
-    term: 'Semester 1, 2024',
-    campus: 'St Lucia',
-    url: 'https://learn.uq.edu.au/course/view.php?id=12345',
-    instructor: 'Dr. Sarah Chen',
+    year: 2024,
+    semester: 1,
     created_at: '2024-01-15T10:00:00Z',
-    ...baseUnit,
   },
   {
     id: '2',
     owner_id: 'mock-user-id',
+    ...baseUnit,
+    external_id: 'mock-2',
     code: 'MATH2400',
     title: 'Mathematical Analysis',
-    term: 'Semester 1, 2024',
-    campus: 'St Lucia',
-    url: null,
-    instructor: 'Prof. Michael Rodriguez',
+    year: 2024,
+    semester: 1,
     created_at: '2024-01-15T10:00:00Z',
-    ...baseUnit,
   },
   {
     id: '3',
     owner_id: 'mock-user-id',
+    ...baseUnit,
+    external_id: 'mock-3',
     code: 'PHYS2020',
     title: 'Thermodynamics & Statistical Mechanics',
-    term: 'Semester 1, 2024',
-    campus: 'St Lucia',
-    url: null,
-    instructor: 'Dr. Emily Watson',
+    year: 2024,
+    semester: 1,
     created_at: '2024-01-15T10:00:00Z',
-    ...baseUnit,
-  }
+  },
 ];
 
 

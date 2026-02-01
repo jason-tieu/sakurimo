@@ -38,7 +38,8 @@ export default function CanvasConnectModal({
     try {
       await onConnect(selectedInstitution.baseUrl, token.trim());
     } catch (err) {
-      setError('We couldn\'t verify that token with Canvas. Please check your token and try again.');
+      const message = err instanceof Error ? err.message : 'We couldn\'t verify that token with Canvas. Please check your token and try again.';
+      setError(message);
     }
   };
 

@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, authenticateUserFromToken } from '@/lib/server/supabase';
-import { encryptToken, decryptToken } from '@/lib/encryption';
+import { encryptToken, decryptToken } from '@/lib/server/encryption';
 
 export const runtime = 'nodejs';
 

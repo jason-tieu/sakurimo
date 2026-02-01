@@ -1,5 +1,6 @@
 'use client';
 
+import { Unit } from '@/lib/types';
 import { useSupabase } from '@/lib/supabase/SupabaseProvider';
 import { useStorage } from '@/lib/storageContext';
 
@@ -21,21 +22,14 @@ export function DebugAuth() {
         return;
       }
 
-      // Test direct Supabase insert first
       const testUnit = {
+        platform: 'canvas',
+        institution: 'QUT',
+        external_id: `debug-${crypto.randomUUID()}`,
         code: 'DEBUG123',
         title: 'Debug Test Unit',
-        term: 'Debug Term',
-        semester: 1,
         year: new Date().getFullYear(),
-        term_display: 'Debug Term',
-        campus: null,
-        url: null,
-        unit_url: null,
-        instructor: null,
-        credits: null,
-        description: null,
-        canvas_course_id: null,
+        semester: 1,
         updated_at: null,
       };
 
@@ -45,7 +39,7 @@ export function DebugAuth() {
           {
             ...testUnit,
             owner_id: directUser.id,
-          }
+          },
         ])
         .select()
         .single();
@@ -56,7 +50,7 @@ export function DebugAuth() {
         console.log('DebugAuth: Direct Supabase insert successful:', directInsertData.id);
       }
       
-      const result = await storage.createUnit(testUnit);
+      const result = await storage.createUnit(testUnit as Omit<Unit, 'id' | 'owner_id' | 'created_at'>);
       console.log('DebugAuth: Unit created successfully via storage adapter:', result.id);
     } catch (error: unknown) {
       console.error('DebugAuth: Unit creation failed:', error);

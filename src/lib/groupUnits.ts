@@ -1,37 +1,31 @@
 import { formatPeriod } from './formatters/period';
 
-export function groupUnits(units: any[]) {
-  const withPeriod = units.filter(u => u.year && u.semester);
-  const withoutPeriod = units.filter(u => !u.year || !u.semester);
+export function groupUnits<T extends { year?: number | null; semester?: number | null }>(
+  units: T[]
+): { groups: Record<string, T[]>; orderedKeys: string[] } {
+  const withPeriod = units.filter(u => u.year != null && u.semester != null);
+  const withoutPeriod = units.filter(u => u.year == null || u.semester == null);
 
-  // Sort by year desc, then semester desc
+  // Sort by year DESC, semester DESC
   withPeriod.sort((a, b) => {
-    if (a.year !== b.year) return b.year - a.year;
+    if (a.year !== b.year) return (b.year ?? 0) - (a.year ?? 0);
     return (b.semester ?? 0) - (a.semester ?? 0);
   });
 
-  // Group by "YYYY S{n}" with optional term_display
-  const groups: Record<string, any[]> = {};
+  const groups: Record<string, T[]> = {};
   for (const u of withPeriod) {
-    // Use term_display if available, otherwise fallback to S{semester} {year}
-    const key = u.term_display && u.term_display.trim() 
-      ? u.term_display.trim() 
-      : `S${u.semester} ${u.year}`;
+    const key = formatPeriod(u);
     if (!groups[key]) groups[key] = [];
     groups[key].push(u);
   }
 
-  // Handle no-period group
   if (withoutPeriod.length > 0) {
     groups['Other'] = withoutPeriod;
   }
 
-  // Preserve order: keys from sorted units
   const orderedKeys: string[] = [];
   for (const u of withPeriod) {
-    const key = u.term_display && u.term_display.trim() 
-      ? u.term_display.trim() 
-      : `S${u.semester} ${u.year}`;
+    const key = formatPeriod(u);
     if (!orderedKeys.includes(key)) orderedKeys.push(key);
   }
   if (withoutPeriod.length > 0) orderedKeys.push('Other');

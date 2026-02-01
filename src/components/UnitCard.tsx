@@ -38,12 +38,6 @@ export function UnitCard({ unit, onViewDetails }: UnitCardProps) {
       
       <div className="space-y-2 text-sm text-muted-foreground">
         <p><span className="font-medium">Period:</span> {formatPeriod(unit)}</p>
-        {unit.campus && (
-          <p><span className="font-medium">Campus:</span> {unit.campus}</p>
-        )}
-        {unit.instructor && (
-          <p><span className="font-medium">Instructor:</span> {unit.instructor}</p>
-        )}
       </div>
       
       <div className="mt-6 flex gap-2">
