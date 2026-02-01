@@ -92,38 +92,6 @@ export interface CanvasCourse {
   sis_import_id?: number;
   end_at?: string;
   public_syllabus_body?: string;
-  public_description?: string;
-  public_syllabus?: boolean;
-  public_syllabus_to_auth?: boolean;
-  public_description?: string;
-  storage_quota_mb: number;
-  storage_quota_used_mb: number;
-  hide_final_grades?: boolean;
-  license?: string;
-  allow_student_assignment_edits?: boolean;
-  allow_wiki_comments?: boolean;
-  allow_student_forum_attachments?: boolean;
-  open_enrollment?: boolean;
-  self_enrollment?: boolean;
-  restrict_enrollments_to_course_dates?: boolean;
-  course_format_option?: string;
-  apply_assignment_group_weights?: boolean;
-  calendar?: {
-    ics?: string;
-  };
-  time_zone?: string;
-  blueprint?: boolean;
-  blueprint_restrictions?: any;
-  blueprint_restrictions_by_object_type?: any;
-  template?: boolean;
-  enrollments?: CanvasEnrollment[];
-  total_students?: number;
-  teachers?: CanvasEnrollment[];
-  sis_course_id?: string;
-  integration_id?: string;
-  sis_import_id?: number;
-  end_at?: string;
-  public_syllabus_body?: string;
 }
 
 export interface CanvasLinkHeader {

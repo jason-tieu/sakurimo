@@ -3,11 +3,11 @@ import { createMockStorage } from './mockStorage';
 import { createSupabaseStorage } from './supabaseAdapter';
 import { getSupabase } from '../supabase';
 
-export function createStorage(): StoragePort {
+export async function createStorage(): Promise<StoragePort> {
   const driver = process.env.STORAGE_DRIVER || 'mock';
   
   if (driver === 'supabase') {
-    const supabase = getSupabase();
+    const supabase = await getSupabase();
     return createSupabaseStorage(supabase);
   }
   

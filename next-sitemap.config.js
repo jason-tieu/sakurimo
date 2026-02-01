@@ -1,6 +1,6 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://jason-tieu.dev',
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
   generateRobotsTxt: true,
   generateIndexSitemap: false,
   exclude: ['/server-sitemap.xml'],
@@ -11,7 +11,7 @@ module.exports = {
         allow: '/',
       },
     ],
-    additionalSitemaps: ['https://jason-tieu.dev/sitemap.xml'],
+    additionalSitemaps: [],
   },
   transform: async (config, path) => {
     // Custom transform for each URL

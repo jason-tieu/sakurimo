@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClientFromRequest } from '@/lib/supabase/serverClient';
-import { createServiceClient, authenticateUserFromToken } from '@/lib/supabase/serviceClient';
+import { createServiceClient, authenticateUserFromToken } from '@/lib/server/supabase';
 import { encryptToken } from '@/lib/encryption';
 import { isAllowedCanvasHost } from '@/lib/institutions';
 
@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 // CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://hanami.vercel.app', // Add your production domain
+  'https://sakurimo.vercel.app', // Add your production domain
 ];
 
 function checkCORS(request: NextRequest): boolean {

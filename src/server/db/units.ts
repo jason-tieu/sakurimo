@@ -182,20 +182,24 @@ export async function listMyUnits(
     return [];
   }
 
-  // Transform and deduplicate units
+  // Transform and deduplicate units (Supabase returns units as array for relation)
   const unitMap = new Map<string, UnitResult>();
+  const unitsList = Array.isArray(enrollments) ? enrollments : [];
 
-  for (const enrollment of enrollments) {
-    const unit = enrollment.units;
-    if (unit && !unitMap.has(unit.id)) {
-      unitMap.set(unit.id, {
-        id: unit.id,
-        code: unit.code,
-        title: unit.title,
-        semester: unit.semester,
-        year: unit.year,
-        url: unit.url,
-      });
+  for (const enrollment of unitsList) {
+    const units = enrollment.units;
+    const items = Array.isArray(units) ? units : (units ? [units] : []);
+    for (const unit of items) {
+      if (unit && !unitMap.has(unit.id)) {
+        unitMap.set(unit.id, {
+          id: unit.id,
+          code: unit.code,
+          title: unit.title,
+          semester: unit.semester,
+          year: unit.year,
+          url: unit.url,
+        });
+      }
     }
   }
 

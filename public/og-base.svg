@@ -57,7 +57,7 @@
   
   <!-- Brand section (top-left) -->
   <text x="80" y="120" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700" fill="#fff">
-    Jason Tieu | Portfolio
+    Sakurimo
   </text>
   <rect x="80" y="140" width="200" height="24" fill="#ff7eb9" rx="12"/>
   <text x="90" y="155" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="500" fill="#0b0b0c">
@@ -70,6 +70,6 @@
   
   
   <!-- Accessibility -->
-  <title>Jason Tieu - Full-Stack &amp; AI Engineer Portfolio</title>
-  <desc>Portfolio website for Jason Tieu, a Brisbane-based full-stack and AI engineer specializing in Next.js, Node.js, AWS, and applied computer vision.</desc>
+  <title>Sakurimo - University Tracker &amp; Academic Planner</title>
+  <desc>University tracker and academic planner app.</desc>
 </svg>

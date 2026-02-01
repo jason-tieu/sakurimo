@@ -111,13 +111,23 @@ export function AddUnitModal({ open, onOpenChange, onUnitAdded }: AddUnitModalPr
 
     try {
       const term = `Semester ${formData.semester}, ${formData.year}`;
+      const semesterNum = Number(formData.semester);
+      const yearNum = Number(formData.year);
       const unitData: Omit<Unit, 'id' | 'owner_id' | 'created_at'> = {
         code: formData.code.trim(),
         title: formData.title.trim(),
-        term: term,
+        term,
+        semester: Number.isNaN(semesterNum) ? null : semesterNum,
+        year: Number.isNaN(yearNum) ? null : yearNum,
+        term_display: term,
         campus: formData.campus.trim() || null,
-        instructor: formData.instructor.trim() || null,
         url: formData.url.trim() || null,
+        unit_url: formData.url.trim() || null,
+        instructor: formData.instructor.trim() || null,
+        credits: null,
+        description: null,
+        canvas_course_id: null,
+        updated_at: null,
       };
 
       const newUnit = await storage.createUnit(unitData);

@@ -101,7 +101,7 @@ export function Sidebar() {
                 <span className="text-brand-foreground font-bold text-sm">🌸</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold">Hanami</h1>
+                <h1 className="text-xl font-bold">Sakurimo</h1>
                 <p className="text-sm text-muted-foreground">
                   University Tracker • Academic Planner
                 </p>

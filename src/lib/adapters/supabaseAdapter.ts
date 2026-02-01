@@ -72,22 +72,30 @@ export function createSupabaseStorage(supabase: SupabaseClient): StoragePort {
 
       // Clean the title and code
       const cleanedCode = cleanUnitCode(unitData.code);
-      const cleanedTitle = cleanUnitTitle(unitData.title, unitData.code); // Use original code for title cleaning
+      const cleanedTitle = cleanUnitTitle(unitData as Unit);
 
       const payload = {
         code: cleanedCode,
         title: cleanedTitle,
         term: unitData.term,
+        semester: unitData.semester ?? null,
+        year: unitData.year ?? null,
+        term_display: unitData.term_display ?? null,
         campus: unitData.campus ?? null,
         url: unitData.url ?? null,
+        unit_url: unitData.unit_url ?? null,
         instructor: unitData.instructor ?? null,
+        credits: unitData.credits ?? null,
+        description: unitData.description ?? null,
+        canvas_course_id: unitData.canvas_course_id ?? null,
+        updated_at: unitData.updated_at ?? null,
       };
       
       try {
         const { data, error } = await supabase
           .from(UNITS_TABLE)
           .insert([payload])
-          .select('id, owner_id, code, title, term, campus, url, instructor, created_at')
+          .select('id, owner_id, code, title, term, semester, year, term_display, campus, url, unit_url, instructor, credits, description, canvas_course_id, created_at, updated_at')
           .single();
         
         if (error) {
@@ -110,15 +118,15 @@ export function createSupabaseStorage(supabase: SupabaseClient): StoragePort {
       if (updates.code) {
         processedUpdates.code = cleanUnitCode(updates.code);
       }
-      if (updates.title && updates.code) {
-        processedUpdates.title = cleanUnitTitle(updates.title, updates.code);
+      if (updates.title != null && updates.code != null) {
+        processedUpdates.title = cleanUnitTitle({ ...updates, title: updates.title, code: updates.code } as Unit);
       }
 
       const { data, error } = await supabase
         .from(UNITS_TABLE)
         .update(processedUpdates)
         .eq('id', id)
-        .select('id, owner_id, code, title, term, campus, url, instructor, created_at')
+        .select('id, owner_id, code, title, term, semester, year, term_display, campus, url, unit_url, instructor, credits, description, canvas_course_id, created_at, updated_at')
         .single();
       
       if (error) {

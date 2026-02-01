@@ -1,7 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Resource } from '../types';
 
-const BUCKET_NAME = 'hanami-resources';
+const BUCKET_NAME = 'sakurimo-resources';
 
 export interface UploadResult {
   url: string;

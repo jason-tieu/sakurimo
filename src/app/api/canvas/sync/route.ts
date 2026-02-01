@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRLSClient, createServiceClient, authenticateUserFromToken } from '@/lib/server/supabase';
+import { createServiceClient, authenticateUserFromToken } from '@/lib/server/supabase';
 import { fetchCanvasJson, paginateCourses } from '@/lib/server/canvas';
 import { mapCanvasProfileToAccountFields, pickEnrollmentRole } from '@/lib/canvas/map';
-import { upsertUnit, upsertUnitSource, upsertEnrollment, listMyUnits } from '@/server/db/units';
-import { CanvasSelfProfile, CanvasSyncResponse } from '@/lib/canvas/types';
+import { upsertUnit, upsertUnitSource, upsertEnrollment } from '@/server/db/units';
+import { CanvasSelfProfile } from '@/lib/canvas/types';
 import { isAllowedCanvasHost } from '@/lib/institutions';
 
 // Ensure this runs on Node.js runtime (not Edge)
@@ -12,40 +12,12 @@ export const runtime = 'nodejs';
 // CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://hanami.vercel.app',
+  'https://sakurimo.vercel.app',
 ];
 
 function checkCORS(request: NextRequest): boolean {
   const origin = request.headers.get('origin');
   return !origin || allowedOrigins.includes(origin);
-}
-
-// Basic validation for Canvas profile
-function validateCanvasProfile(data: any): CanvasSelfProfile {
-  if (!data || typeof data !== 'object') {
-    throw new Error('Invalid profile data: expected object');
-  }
-  
-  if (typeof data.id !== 'number') {
-    throw new Error('Invalid profile data: id must be a number');
-  }
-
-  return {
-    id: data.id,
-    name: typeof data.name === 'string' ? data.name : undefined,
-    short_name: typeof data.short_name === 'string' ? data.short_name : undefined,
-    sortable_name: typeof data.sortable_name === 'string' ? data.sortable_name : undefined,
-    avatar_url: typeof data.avatar_url === 'string' ? data.avatar_url : undefined,
-    primary_email: typeof data.primary_email === 'string' ? data.primary_email : undefined,
-    login_id: typeof data.login_id === 'string' ? data.login_id : undefined,
-    integration_id: typeof data.integration_id === 'string' ? data.integration_id : undefined,
-    time_zone: typeof data.time_zone === 'string' ? data.time_zone : undefined,
-    locale: typeof data.locale === 'string' ? data.locale : undefined,
-    effective_locale: typeof data.effective_locale === 'string' ? data.effective_locale : undefined,
-    calendar: data.calendar && typeof data.calendar === 'object' ? {
-      ics: typeof data.calendar.ics === 'string' ? data.calendar.ics : undefined,
-    } : undefined,
-  };
 }
 
 export async function POST(request: NextRequest) {
@@ -95,7 +67,6 @@ export async function POST(request: NextRequest) {
 
     // Create clients
     const serviceClient = createServiceClient();
-    const rlsClient = createRLSClient();
 
     // 2) read connection (server-only, service role)
     const { data: conn, error: connError } = await serviceClient
@@ -160,13 +131,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 3) read (or create) account
-    let acct = await serviceClient
+    const { data: acctData } = await serviceClient
       .from('lms_accounts')
       .select('*')
       .eq('owner_id', user.id)
       .eq('provider', 'canvas')
       .eq('base_url', conn.account_identifier) // ensure exact match
       .maybeSingle();
+    let acct = acctData;
 
     // 4) fetch profile first if account missing OR external_user_id null
     const baseUrl = conn.account_identifier;

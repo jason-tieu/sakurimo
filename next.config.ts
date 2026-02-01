@@ -26,4 +26,19 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withMDX(nextConfig);
+// Apply MDX then fix turbopack: @next/mdx adds top-level turbopack.conditions
+// which Next.js 16 does not accept (condition belongs inside each rule).
+let config = withMDX(nextConfig);
+if (config.turbopack && 'conditions' in config.turbopack) {
+  const turbopack = config.turbopack as Record<string, unknown>;
+  const conditions = turbopack.conditions as Record<string, unknown> | undefined;
+  const rules = turbopack.rules as Record<string, unknown> | undefined;
+  if (conditions && rules && typeof rules['#next-mdx'] === 'object' && rules['#next-mdx'] !== null) {
+    const mdxRule = rules['#next-mdx'] as Record<string, unknown>;
+    if (conditions['#next-mdx']) {
+      mdxRule.condition = conditions['#next-mdx'];
+    }
+  }
+  delete turbopack.conditions;
+}
+export default config;

@@ -5,5 +5,5 @@
 <rect x="350" y="100" width="200" height="150" fill="#6C63FF" rx="10"/>
 <rect x="100" y="300" width="300" height="100" fill="#10B981" rx="10"/>
 <rect x="450" y="300" width="250" height="100" fill="#F59E0B" rx="10"/>
-<text x="400" y="50" text-anchor="middle" fill="white" font-family="Arial" font-size="20" font-weight="bold">About Jason Tieu</text>
+<text x="400" y="50" text-anchor="middle" fill="white" font-family="Arial" font-size="20" font-weight="bold">About</text>
 </svg>

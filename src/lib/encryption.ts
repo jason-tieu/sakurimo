@@ -83,8 +83,7 @@ export function decryptToken(encryptedData: EncryptedData): string {
   const decipher = createDecipheriv('aes-256-gcm', key, iv);
   decipher.setAuthTag(authTag);
   
-  let decrypted = decipher.update(encrypted, null, 'utf8');
-  decrypted += decipher.final('utf8');
-  
-  return decrypted;
+  const part1 = decipher.update(encrypted, undefined, 'utf8');
+  const part2 = decipher.final('utf8');
+  return part1 + part2;
 }

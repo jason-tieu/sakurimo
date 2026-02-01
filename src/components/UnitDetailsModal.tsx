@@ -101,7 +101,6 @@ export function UnitDetailsModal({ unitId, open, onClose }: UnitDetailsModalProp
           <h2 className="text-xl font-semibold text-foreground">Unit Details</h2>
           <UIButton
             variant="ghost"
-            size="sm"
             onClick={onClose}
             className="p-2"
             aria-label="Close modal"
@@ -205,8 +204,8 @@ export function UnitDetailsModal({ unitId, open, onClose }: UnitDetailsModalProp
                       </a>
                       <UIButton
                         variant="ghost"
-                        size="sm"
                         onClick={() => copyToClipboard(unit.url!)}
+                        className="p-2"
                         aria-label="Copy Canvas link"
                       >
                         <Copy className="h-4 w-4" />
@@ -232,8 +231,8 @@ export function UnitDetailsModal({ unitId, open, onClose }: UnitDetailsModalProp
                       </a>
                       <UIButton
                         variant="ghost"
-                        size="sm"
                         onClick={() => copyToClipboard(unit.unit_url!)}
+                        className="p-2"
                         aria-label="Copy ICS link"
                       >
                         <Copy className="h-4 w-4" />

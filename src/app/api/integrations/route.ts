@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClientFromRequest } from '@/lib/supabase/serverClient';
-import { createServiceClient, authenticateUserFromToken } from '@/lib/supabase/serviceClient';
+import { createServiceClient, authenticateUserFromToken } from '@/lib/server/supabase';
 
 // Ensure this runs on Node.js runtime (not Edge)
 export const runtime = 'nodejs';
@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 // CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://hanami.vercel.app', // Add your production domain
+  'https://sakurimo.vercel.app', // Add your production domain
 ];
 
 function checkCORS(request: NextRequest): boolean {

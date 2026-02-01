@@ -26,9 +26,17 @@ export function DebugAuth() {
         code: 'DEBUG123',
         title: 'Debug Test Unit',
         term: 'Debug Term',
+        semester: 1,
+        year: new Date().getFullYear(),
+        term_display: 'Debug Term',
         campus: null,
         url: null,
+        unit_url: null,
         instructor: null,
+        credits: null,
+        description: null,
+        canvas_course_id: null,
+        updated_at: null,
       };
 
       const { data: directInsertData, error: directInsertError } = await supabase

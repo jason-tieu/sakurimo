@@ -23,10 +23,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hanami.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sakurimo.app'),
   title: {
-    default: 'Hanami | University Tracker',
-    template: '%s | Hanami — University Tracker',
+    default: 'Sakurimo | University Tracker',
+    template: '%s | Sakurimo — University Tracker',
   },
   description:
     'A comprehensive university tracker to manage units, assignments, exams, and academic progress. Stay organized with your academic journey.',
@@ -50,36 +50,36 @@ export const metadata: Metadata = {
     'university app',
     'student tracker',
   ],
-  authors: [{ name: 'Hanami', url: 'https://hanami.app' }],
-  creator: 'Hanami',
-  publisher: 'Hanami',
+  authors: [{ name: 'Sakurimo', url: 'https://sakurimo.app' }],
+  creator: 'Sakurimo',
+  publisher: 'Sakurimo',
   alternates: {
     canonical: '/',
   },
   openGraph: {
     type: 'website',
     locale: 'en_AU',
-    url: 'https://hanami.app/',
-    title: 'Hanami — University Tracker & Academic Planner',
+    url: 'https://sakurimo.app/',
+    title: 'Sakurimo — University Tracker & Academic Planner',
     description:
       'A comprehensive university tracker to manage units, assignments, exams, and academic progress. Stay organized with your academic journey.',
-    siteName: 'Hanami — University Tracker',
+    siteName: 'Sakurimo — University Tracker',
     images: [
       {
         url: '/og.png',
         width: 1200,
         height: 630,
-        alt: 'Hanami — University Tracker & Academic Planner',
+        alt: 'Sakurimo — University Tracker & Academic Planner',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Hanami — University Tracker & Academic Planner',
+    title: 'Sakurimo — University Tracker & Academic Planner',
     description:
       'A comprehensive university tracker to manage units, assignments, exams, and academic progress. Stay organized with your academic journey.',
     images: ['/og.png'],
-    creator: '@hanami_app',
+    creator: '@sakurimo_app',
   },
   robots: {
     index: true,
@@ -122,8 +122,8 @@ export default function RootLayout({
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'WebApplication',
-              name: 'Hanami',
-              url: 'https://hanami.app',
+              name: 'Sakurimo',
+              url: 'https://sakurimo.app',
               description: 'A comprehensive university tracker to manage units, assignments, exams, and academic progress.',
               applicationCategory: 'EducationalApplication',
               operatingSystem: 'Web Browser',

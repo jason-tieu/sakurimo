@@ -11,7 +11,6 @@ import {
   Mail,
   Github,
   Linkedin,
-  Download,
 } from 'lucide-react';
 import UIButton from '@/components/UIButton';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -25,9 +24,9 @@ const navigation = [
 ];
 
 const socialLinks = [
-  { name: 'GitHub', href: 'https://github.com/jason-tieu', icon: Github },
-  { name: 'LinkedIn', href: 'https://www.linkedin.com/in/jason-tieu-engineer/', icon: Linkedin },
-  { name: 'Email', href: 'mailto:jason.tieu04@gmail.com', icon: Mail },
+  { name: 'GitHub', href: 'https://github.com', icon: Github },
+  { name: 'LinkedIn', href: 'https://www.linkedin.com', icon: Linkedin },
+  { name: 'Email', href: 'mailto:', icon: Mail },
 ];
 
 const normalize = (p: string) => (p.endsWith('/') && p !== '/' ? p.slice(0, -1) : p);
@@ -48,7 +47,7 @@ export function MobileNav() {
       {/* Top Bar */}
       <div className="flex items-center justify-between h-16 px-4 bg-background/95 backdrop-blur-xl border-b border-border shadow-lg dark:bg-neutral-900/95 dark:border-neutral-700/50">
         <Link href="/" className="text-xl font-bold text-foreground">
-          Jason Tieu
+          Sakurimo
         </Link>
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
@@ -66,12 +65,12 @@ export function MobileNav() {
               <div className="px-6 py-6 border-b border-border dark:border-neutral-700/50">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center">
-                    <span className="text-brand-foreground font-bold text-sm">JT</span>
+                    <span className="text-brand-foreground font-bold text-sm">🌸</span>
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-foreground">Jason Tieu</h2>
+                    <h2 className="text-xl font-bold text-foreground">Sakurimo</h2>
                     <p className="text-sm text-muted-foreground">
-                      Full-Stack Development • Cloud & DevOps • AI/ML
+                      University Tracker • Academic Planner
                     </p>
                   </div>
                 </div>
@@ -104,19 +103,6 @@ export function MobileNav() {
                   );
                 })}
               </nav>
-
-              {/* Resume Download */}
-              <div className="px-6 py-4 border-t border-border dark:border-neutral-700/50">
-                <a
-                  href="/resume.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 text-foreground rounded-xl border border-brand/30 hover:from-brand/30 hover:to-brand/20 transition-all duration-200 hover:scale-105"
-                >
-                  <Download className="h-5 w-5 mr-2" />
-                  <span className="font-semibold">Download Resume</span>
-                </a>
-              </div>
 
               {/* Social Links */}
               <div className="px-6 py-4 border-t border-border dark:border-neutral-700/50">

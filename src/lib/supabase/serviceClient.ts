@@ -1,48 +1,19 @@
 /**
- * Server-only Supabase service client
- * Uses SUPABASE_SERVICE_ROLE_KEY for elevated permissions
- * NEVER import this in client-side code
+ * DEPRECATED: Service-role client has been moved to server-only code.
+ *
+ * In API routes and server code, use:
+ *   import { createServiceClient, authenticateUserFromToken } from '@/lib/server/supabase';
+ *
+ * This file does not reference SUPABASE_SERVICE_ROLE_KEY and must not re-export
+ * server/supabase, so it is safe in any bundle. If you import this from client
+ * code, you will get the error below at runtime.
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-// Safety check: ensure this is only used server-side
 if (typeof window !== 'undefined') {
-  throw new Error('Service client must not be imported in client-side code');
+  throw new Error(
+    'Do not import service client in browser. Use createClient from @/lib/supabase/browserClient or SupabaseProvider.'
+  );
 }
 
-// Safety check: ensure service role key is not exposed
-if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY.includes('NEXT_PUBLIC_')) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY must not have NEXT_PUBLIC_ prefix');
-}
-
-export function createServiceClient() {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Missing required environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
-
-/**
- * Authenticate user from JWT token using service client
- */
-export async function authenticateUserFromToken(accessToken: string) {
-  const supabase = createServiceClient();
-  
-  const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-  
-  if (error || !user) {
-    throw new Error('Invalid or expired access token');
-  }
-  
-  return user;
-}
+// No re-export: do not pull in @/lib/server/supabase here (it contains the service role key).
+// All API routes should import directly from '@/lib/server/supabase'.

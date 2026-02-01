@@ -18,6 +18,17 @@ import {
 
 // Mock data for development and testing
 
+const baseUnit = {
+  semester: null as number | null,
+  year: null as number | null,
+  term_display: null as string | null,
+  unit_url: null as string | null,
+  credits: null as number | null,
+  description: null as string | null,
+  canvas_course_id: null as number | null,
+  updated_at: null as string | null,
+};
+
 export const mockUnits: Unit[] = [
   {
     id: '1',
@@ -29,6 +40,7 @@ export const mockUnits: Unit[] = [
     url: 'https://learn.uq.edu.au/course/view.php?id=12345',
     instructor: 'Dr. Sarah Chen',
     created_at: '2024-01-15T10:00:00Z',
+    ...baseUnit,
   },
   {
     id: '2',
@@ -40,6 +52,7 @@ export const mockUnits: Unit[] = [
     url: null,
     instructor: 'Prof. Michael Rodriguez',
     created_at: '2024-01-15T10:00:00Z',
+    ...baseUnit,
   },
   {
     id: '3',
@@ -51,6 +64,7 @@ export const mockUnits: Unit[] = [
     url: null,
     instructor: 'Dr. Emily Watson',
     created_at: '2024-01-15T10:00:00Z',
+    ...baseUnit,
   }
 ];
 

@@ -50,14 +50,15 @@ export default function IntegrationsPage() {
     // Update with real connection data
     connections.forEach(connection => {
       if (connection.provider === 'canvas') {
+        const lastSync = connection.access_meta.last_synced_at
+          ? new Date(connection.access_meta.last_synced_at)
+          : undefined;
         integrationMap.set('canvas', {
           id: 'canvas',
           name: 'Canvas LMS',
           type: 'canvas',
           status: connection.status,
-          lastSync: connection.access_meta.last_synced_at 
-            ? new Date(connection.access_meta.last_synced_at)
-            : undefined,
+          ...(lastSync !== undefined && { lastSync }),
           connectionId: connection.id
         });
       }

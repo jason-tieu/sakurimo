@@ -33,7 +33,7 @@ export default function GradesPage() {
     const unit = getUnitInfo(grade.unitId);
     return unit && (
       unit.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      unit.code.toLowerCase().includes(searchTerm.toLowerCase())
+      (unit.code ?? '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 

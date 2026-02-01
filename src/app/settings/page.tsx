@@ -18,7 +18,7 @@ export default function SettingsPage() {
               Settings
             </h1>
             <p className="text-lg text-muted-foreground">
-              Customize your Hanami experience and manage your preferences.
+              Customize your Sakurimo experience and manage your preferences.
             </p>
           </div>
 

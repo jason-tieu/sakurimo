@@ -47,3 +47,4 @@ export function hasPeriod(u: UnitPeriod): boolean {
     u.term
   );
 }
+

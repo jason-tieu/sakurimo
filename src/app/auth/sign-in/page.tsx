@@ -141,7 +141,7 @@ function SignInForm() {
             <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
               <span className="text-brand-foreground font-bold text-sm">🌸</span>
             </div>
-            <span className="text-xl font-bold">Hanami</span>
+            <span className="text-xl font-bold">Sakurimo</span>
           </Link>
           <h1 className="text-2xl font-bold mt-4">Welcome back</h1>
           <p className="text-muted-foreground mt-2">

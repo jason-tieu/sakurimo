@@ -156,19 +156,31 @@ export async function syncCanvasData(connectionId: string, accessToken: string):
  * Map Canvas profile to LMS account fields
  */
 export function mapCanvasProfileToAccount(profile: CanvasSelfProfile, baseUrl: string): Partial<LMSAccount> {
+  const s = (v: string | null | undefined) => v?.trim();
+  const name = s(profile.name);
+  const short_name = s(profile.short_name);
+  const sortable_name = s(profile.sortable_name);
+  const avatar_url = s(profile.avatar_url);
+  const primary_email = s(profile.primary_email);
+  const login_id = s(profile.login_id);
+  const integration_id = s(profile.integration_id);
+  const time_zone = s(profile.time_zone);
+  const locale = s(profile.locale);
+  const effective_locale = s(profile.effective_locale);
+  const calendar_ics = s(profile.calendar?.ics);
   return {
     external_user_id: profile.id.toString(),
-    name: profile.name?.trim() || null,
-    short_name: profile.short_name?.trim() || null,
-    sortable_name: profile.sortable_name?.trim() || null,
-    avatar_url: profile.avatar_url?.trim() || null,
-    primary_email: profile.primary_email?.trim() || null,
-    login_id: profile.login_id?.trim() || null,
-    integration_id: profile.integration_id?.trim() || null,
-    time_zone: profile.time_zone?.trim() || null,
-    locale: profile.locale?.trim() || null,
-    effective_locale: profile.effective_locale?.trim() || null,
-    calendar_ics: profile.calendar?.ics?.trim() || null,
+    ...(name && { name }),
+    ...(short_name && { short_name }),
+    ...(sortable_name && { sortable_name }),
+    ...(avatar_url && { avatar_url }),
+    ...(primary_email && { primary_email }),
+    ...(login_id && { login_id }),
+    ...(integration_id && { integration_id }),
+    ...(time_zone && { time_zone }),
+    ...(locale && { locale }),
+    ...(effective_locale && { effective_locale }),
+    ...(calendar_ics && { calendar_ics }),
     last_profile_sync_at: new Date().toISOString(),
   };
 }

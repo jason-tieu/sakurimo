@@ -1,7 +1,9 @@
 /**
  * Server-side Supabase helpers
+ * MUST NOT be imported by any "use client" component or client bundle.
  */
 
+import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 import { createClientFromRequest } from '../supabase/serverClient';
 

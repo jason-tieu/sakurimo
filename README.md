@@ -1,4 +1,4 @@
-# Hanami - University Tracker
+# Sakurimo - University Tracker
 
 A comprehensive university tracker built with Next.js, TypeScript, Tailwind CSS, and Framer Motion. Manage your academic journey with unit tracking, assignment management, and study planning.
 
@@ -32,8 +32,8 @@ A comprehensive university tracker built with Next.js, TypeScript, Tailwind CSS,
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/username/hanami.git
-   cd hanami
+   git clone https://github.com/username/sakurimo.git
+   cd sakurimo
    ```
 
 2. **Install dependencies**
@@ -190,7 +190,7 @@ To add Google Analytics, uncomment the configuration in `src/app/layout.tsx` and
 ## 📁 Project Structure
 
 ```
-hanami/
+sakurimo/
 ├── src/
 │   ├── app/
 │   │   ├── units/

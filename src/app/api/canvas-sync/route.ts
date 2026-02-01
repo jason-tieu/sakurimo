@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClientFromRequest } from '@/lib/supabase/serverClient';
-import { createServiceClient, authenticateUserFromToken } from '@/lib/supabase/serviceClient';
+import { createServiceClient, authenticateUserFromToken } from '@/lib/server/supabase';
 import { decryptToken } from '@/lib/encryption';
 import { isAllowedCanvasHost } from '@/lib/institutions';
 import { mapCanvasProfileToAccount } from '@/lib/canvas-api';
@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 // CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://hanami.vercel.app', // Add your production domain
+  'https://sakurimo.vercel.app', // Add your production domain
 ];
 
 function checkCORS(request: NextRequest): boolean {
@@ -20,32 +20,43 @@ function checkCORS(request: NextRequest): boolean {
   return !origin || allowedOrigins.includes(origin);
 }
 
-// Basic validation for Canvas profile
-function validateCanvasProfile(data: any): CanvasSelfProfile {
+// Basic validation for Canvas profile (omit optional props when undefined for exactOptionalPropertyTypes)
+function validateCanvasProfile(data: Record<string, unknown>): CanvasSelfProfile {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid profile data: expected object');
   }
-  
+
   if (typeof data.id !== 'number') {
     throw new Error('Invalid profile data: id must be a number');
   }
 
-  return {
-    id: data.id,
-    name: typeof data.name === 'string' ? data.name : undefined,
-    short_name: typeof data.short_name === 'string' ? data.short_name : undefined,
-    sortable_name: typeof data.sortable_name === 'string' ? data.sortable_name : undefined,
-    avatar_url: typeof data.avatar_url === 'string' ? data.avatar_url : undefined,
-    primary_email: typeof data.primary_email === 'string' ? data.primary_email : undefined,
-    login_id: typeof data.login_id === 'string' ? data.login_id : undefined,
-    integration_id: typeof data.integration_id === 'string' ? data.integration_id : undefined,
-    time_zone: typeof data.time_zone === 'string' ? data.time_zone : undefined,
-    locale: typeof data.locale === 'string' ? data.locale : undefined,
-    effective_locale: typeof data.effective_locale === 'string' ? data.effective_locale : undefined,
-    calendar: data.calendar && typeof data.calendar === 'object' ? {
-      ics: typeof data.calendar.ics === 'string' ? data.calendar.ics : undefined,
-    } : undefined,
+  let calendar: { ics: string } | undefined;
+  if (
+    data.calendar &&
+    typeof data.calendar === 'object' &&
+    data.calendar !== null &&
+    typeof (data.calendar as { ics?: unknown }).ics === 'string'
+  ) {
+    calendar = { ics: (data.calendar as { ics: string }).ics };
+  } else {
+    calendar = undefined;
+  }
+
+  const profile: CanvasSelfProfile = {
+    id: data.id as number,
+    ...(typeof data.name === 'string' && { name: data.name }),
+    ...(typeof data.short_name === 'string' && { short_name: data.short_name }),
+    ...(typeof data.sortable_name === 'string' && { sortable_name: data.sortable_name }),
+    ...(typeof data.avatar_url === 'string' && { avatar_url: data.avatar_url }),
+    ...(typeof data.primary_email === 'string' && { primary_email: data.primary_email }),
+    ...(typeof data.login_id === 'string' && { login_id: data.login_id }),
+    ...(typeof data.integration_id === 'string' && { integration_id: data.integration_id }),
+    ...(typeof data.time_zone === 'string' && { time_zone: data.time_zone }),
+    ...(typeof data.locale === 'string' && { locale: data.locale }),
+    ...(typeof data.effective_locale === 'string' && { effective_locale: data.effective_locale }),
+    ...(calendar !== undefined && { calendar }),
   };
+  return profile;
 }
 
 export async function POST(request: NextRequest) {
