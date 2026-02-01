@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { createBrowserClient } from './browserClient';
+import { createClient } from './client';
 import { syncUserProfile } from './profileSync';
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js';
 
@@ -19,13 +19,12 @@ interface SupabaseProviderProps {
 }
 
 export function SupabaseProvider({ children }: SupabaseProviderProps) {
-  const [supabase] = useState(() => createBrowserClient());
+  const [supabase] = useState(() => createClient());
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);

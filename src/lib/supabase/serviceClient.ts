@@ -11,7 +11,7 @@
 
 if (typeof window !== 'undefined') {
   throw new Error(
-    'Do not import service client in browser. Use createClient from @/lib/supabase/browserClient or SupabaseProvider.'
+    'Do not import service client in browser. Use createClient from @/lib/supabase/client or SupabaseProvider.'
   );
 }
 

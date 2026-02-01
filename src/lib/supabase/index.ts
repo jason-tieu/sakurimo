@@ -1,13 +1,13 @@
-import { createClient as createBrowserClient } from './browserClient';
-import { createClient as createServerClient } from './serverClient';
+import { createClient as createBrowserClient } from './client';
+import { createClient as createServerClient } from './server';
 
-export function getSupabase() {
-  // Check if we're in a server environment
+export async function getSupabase() {
   if (typeof window === 'undefined') {
     return createServerClient();
   }
   return createBrowserClient();
 }
 
-export { createClient as createBrowserClient } from './browserClient';
-export { createClient as createServerClient } from './serverClient';
+export { createClient as createBrowserClient } from './client';
+export { createClient as createServerClient } from './server';
+export { updateSession } from './proxy';

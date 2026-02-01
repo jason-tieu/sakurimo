@@ -5,7 +5,6 @@
 
 import 'server-only';
 import { createClient } from '@supabase/supabase-js';
-import { createClientFromRequest } from '../supabase/serverClient';
 
 // Safety check: ensure this is only used server-side
 if (typeof window !== 'undefined') {

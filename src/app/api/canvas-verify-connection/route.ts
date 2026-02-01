@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/serverClient';
+import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/server/supabase';
 import { decryptToken } from '@/lib/server/encryption';
 import { isAllowedCanvasHost } from '@/lib/institutions';
