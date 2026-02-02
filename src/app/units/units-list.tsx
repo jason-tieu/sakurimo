@@ -13,6 +13,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { BookOpen, Plus, Filter } from 'lucide-react';
 import { Unit } from '@/lib/types';
 import { hasPeriod } from '@/lib/formatters/period';
+import { cleanUnitTitle } from '@/lib/formatters/unitTitle';
 import { groupUnits } from '@/lib/groupUnits';
 import UIButton from '@/components/UIButton';
 import { AddUnitModal } from '@/components/AddUnitModal';
@@ -32,6 +33,36 @@ type FlattenedRow =
 interface UnitsListProps {
   units: Unit[];
   onUnitAdded: (unit: Unit) => void;
+  searchQuery?: string;
+  onlyWithPeriod?: boolean;
+  filterYear?: number | null;
+  filterSemester?: number | null;
+  filterCodePrefixes?: string[];
+}
+
+function matchesSearch(unit: Unit, q: string): boolean {
+  if (!q.trim()) return true;
+  const lower = q.trim().toLowerCase();
+  const code = (unit.code ?? '').toLowerCase();
+  const title = (unit.title ?? '').toLowerCase();
+  const cleanTitle = cleanUnitTitle(unit).toLowerCase();
+  return code.includes(lower) || title.includes(lower) || cleanTitle.includes(lower);
+}
+
+function matchesYear(unit: Unit, year: number | null): boolean {
+  if (year === null) return true;
+  return unit.year === year;
+}
+
+function matchesSemester(unit: Unit, semester: number | null): boolean {
+  if (semester === null) return true;
+  return unit.semester === semester;
+}
+
+function matchesCodePrefix(unit: Unit, prefixes: string[]): boolean {
+  if (prefixes.length === 0) return true;
+  const code = (unit.code ?? '').toUpperCase();
+  return prefixes.some((p) => code.startsWith(p.toUpperCase()));
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -42,9 +73,16 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-export function UnitsList({ units, onUnitAdded }: UnitsListProps) {
+export function UnitsList({
+  units,
+  onUnitAdded,
+  searchQuery = '',
+  onlyWithPeriod = true,
+  filterYear = null,
+  filterSemester = null,
+  filterCodePrefixes = [],
+}: UnitsListProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [onlyWithPeriod, setOnlyWithPeriod] = useState(true);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
   const renderCountRef = useRef(0);
@@ -65,25 +103,13 @@ export function UnitsList({ units, onUnitAdded }: UnitsListProps) {
     setSelectedUnitId(null);
   }, []);
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const onlyWithPeriodParam = urlParams.get('onlyWithPeriod');
-    if (onlyWithPeriodParam !== null) {
-      setOnlyWithPeriod(onlyWithPeriodParam === '1');
-    }
-  }, []);
-
-  const handleFilterChange = useCallback((value: boolean) => {
-    setOnlyWithPeriod(value);
-    const url = new URL(window.location.href);
-    url.searchParams.set('onlyWithPeriod', value ? '1' : '0');
-    window.history.replaceState({}, '', url.toString());
-  }, []);
-
-  const filteredUnits = useMemo(
-    () => (onlyWithPeriod ? units.filter(hasPeriod) : units),
-    [units, onlyWithPeriod]
-  );
+  const filteredUnits = useMemo(() => {
+    let list = units.filter((u) => matchesSearch(u, searchQuery));
+    list = list.filter((u) => matchesYear(u, filterYear));
+    list = list.filter((u) => matchesSemester(u, filterSemester));
+    list = list.filter((u) => matchesCodePrefix(u, filterCodePrefixes));
+    return onlyWithPeriod ? list.filter(hasPeriod) : list;
+  }, [units, searchQuery, onlyWithPeriod, filterYear, filterSemester, filterCodePrefixes]);
 
   const { groups, orderedKeys } = useMemo(
     () => {
@@ -192,30 +218,12 @@ export function UnitsList({ units, onUnitAdded }: UnitsListProps) {
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            {filteredUnits.length} of {units.length} units
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-muted-foreground">Only with Period</label>
-          <button
-            onClick={() => handleFilterChange(!onlyWithPeriod)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              onlyWithPeriod ? 'bg-brand' : 'bg-muted'
-            }`}
-            aria-label="Toggle period filter"
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                onlyWithPeriod ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
+      <div className="mb-6 flex items-center gap-3">
+        <Filter className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm text-muted-foreground">
+          {filteredUnits.length} of {units.length} units
+          {searchQuery.trim() ? ` matching "${searchQuery.trim()}"` : ''}
+        </span>
       </div>
 
       <div className="relative" style={{ height: 'min(65vh, 720px)' }}>

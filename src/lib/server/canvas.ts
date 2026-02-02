@@ -2,7 +2,7 @@
  * Server-side Canvas API helpers
  */
 
-import { CanvasCourse, CanvasLinkHeader } from '../canvas/types';
+import { CanvasAssignment, CanvasAssignmentGroup, CanvasCourse, CanvasLinkHeader } from '../canvas/types';
 import { createServiceClient } from './supabase';
 import { decryptToken } from './encryption';
 
@@ -113,4 +113,90 @@ export async function paginateCourses(
   }
 
   return allCourses;
+}
+
+/**
+ * Fetch assignment groups for a course (single request, no pagination by default).
+ */
+export async function fetchAssignmentGroups(
+  baseUrl: string,
+  token: string,
+  courseId: string | number
+): Promise<CanvasAssignmentGroup[]> {
+  const path = `/api/v1/courses/${courseId}/assignment_groups`;
+  const data = await fetchCanvasJson<CanvasAssignmentGroup[]>(baseUrl, path, token);
+  return Array.isArray(data) ? data : [];
+}
+
+/**
+ * Get total assignment count for a course (lightweight: per_page=1, parse Link rel="last").
+ * Returns null if Canvas does not include "last" in the Link header.
+ */
+export async function getAssignmentCount(
+  baseUrl: string,
+  token: string,
+  courseId: string | number
+): Promise<number | null> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v1/courses/${courseId}/assignments?per_page=1`;
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('Canvas token expired; please reconnect');
+  }
+  if (!response.ok) {
+    throw new Error(`Canvas API error: ${response.status} ${response.statusText}`);
+  }
+  const linkHeader = response.headers.get('Link');
+  const links = parseLinkHeader(linkHeader);
+  const lastUrl = links.last;
+  if (!lastUrl) return null;
+  try {
+    const parsed = new URL(lastUrl);
+    const page = parsed.searchParams.get('page');
+    if (page == null) return null;
+    const n = parseInt(page, 10);
+    return Number.isNaN(n) || n < 1 ? null : n;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Paginate through Canvas assignments for a course (Link header, per_page=100).
+ */
+export async function paginateAssignments(
+  baseUrl: string,
+  token: string,
+  courseId: string | number
+): Promise<CanvasAssignment[]> {
+  const all: CanvasAssignment[] = [];
+  let nextUrl: string | null = `${baseUrl.replace(/\/$/, '')}/api/v1/courses/${courseId}/assignments?per_page=100`;
+
+  while (nextUrl) {
+    const response = await fetch(nextUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Canvas token expired; please reconnect');
+    }
+    if (!response.ok) {
+      throw new Error(`Canvas API error: ${response.status} ${response.statusText}`);
+    }
+
+    const page: CanvasAssignment[] = await response.json();
+    all.push(...page);
+    const linkHeader = response.headers.get('Link');
+    const links = parseLinkHeader(linkHeader);
+    nextUrl = links.next || null;
+  }
+
+  return all;
 }

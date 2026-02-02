@@ -101,6 +101,32 @@ export interface CanvasLinkHeader {
   last?: string;
 }
 
+export interface CanvasAssignmentGroup {
+  id: number;
+  name: string;
+  position?: number;
+  group_weight?: number;
+  assignments?: CanvasAssignment[];
+}
+
+export interface CanvasAssignment {
+  id: number;
+  name: string;
+  description?: string | null;
+  due_at?: string | null;
+  unlock_at?: string | null;
+  lock_at?: string | null;
+  assignment_group_id: number;
+  points_possible?: number | null;
+  submission_types?: string[];
+  quiz_id?: number | null;
+  is_quiz_assignment?: boolean;
+  workflow_state?: string;
+  html_url?: string | null;
+  updated_at?: string | null;
+  [key: string]: unknown;
+}
+
 export interface CanvasSyncResponse {
   ok: boolean;
   profileSaved?: boolean;

@@ -7,7 +7,9 @@ import SpeedInsightsClient from '@/components/SpeedInsightsClient';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { StorageProvider } from '@/lib/storageContext';
 import { SupabaseProvider } from '@/lib/supabase/SupabaseProvider';
+import { SyncProvider } from '@/lib/syncContext';
 import { ToastProvider } from '@/lib/toast';
+import { SyncProgressCards } from '@/components/SyncProgressCards';
 import './globals.css';
 
 const inter = Inter({
@@ -156,13 +158,16 @@ export default function RootLayout({
         >
           <SupabaseProvider>
             <StorageProvider>
-              <ToastProvider>
-                <Shell>{children}</Shell>
-                {/* Floating Theme Toggle */}
-                <div className="fixed bottom-6 right-6 z-50">
-                  <ThemeToggle />
-                </div>
-              </ToastProvider>
+              <SyncProvider>
+                <ToastProvider>
+                  <Shell>{children}</Shell>
+                  <SyncProgressCards />
+                  {/* Floating Theme Toggle */}
+                  <div className="fixed bottom-6 right-6 z-50">
+                    <ThemeToggle />
+                  </div>
+                </ToastProvider>
+              </SyncProvider>
             </StorageProvider>
           </SupabaseProvider>
         </ThemeProvider>

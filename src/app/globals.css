@@ -459,3 +459,16 @@ body {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* Sync progress bar: smooth pink indeterminate animation */
+@keyframes sync-progress-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+.sync-progress-indeterminate {
+  animation: sync-progress-slide 1.8s ease-in-out infinite;
+}

@@ -1,15 +1,109 @@
 'use client';
 
-import { Suspense, useRef, useCallback } from 'react';
+import { Suspense, useRef, useCallback, useState, useEffect } from 'react';
 import SectionWrapper from '@/components/SectionWrapper';
+import { useSession } from '@/lib/supabase/SupabaseProvider';
+import { useSync } from '@/lib/syncContext';
+import { useToast } from '@/lib/toast';
+import { readUnitsSyncStream } from '@/lib/readSyncStream';
 import { UnitsActions } from './units-actions';
 import { UnitsData } from './units-data';
 
 export default function UnitsPage() {
+  const { session } = useSession();
+  const { addToast } = useToast();
+  const {
+    unitsSyncing,
+    setUnitsSyncing,
+    setUnitsProgress,
+    setUnitsSyncResult,
+  } = useSync();
   const refreshUnitsRef = useRef<(() => void) | null>(null);
   const onRefreshRequest = useCallback((refreshFn: () => void) => {
     refreshUnitsRef.current = refreshFn;
   }, []);
+
+  const handleSync = useCallback(async () => {
+    const token = session?.access_token;
+    if (!token) {
+      addToast({ title: 'Not signed in', type: 'warning' });
+      return;
+    }
+    setUnitsSyncing(true);
+    setUnitsProgress(null);
+    try {
+      await readUnitsSyncStream(
+        '/api/canvas/sync/stream',
+        token,
+        (current, total) => setUnitsProgress({ current, total }),
+        (data) => {
+          setUnitsProgress(null);
+          if (data.ok) {
+            setUnitsSyncResult({
+              added: data.added,
+              updated: data.updated,
+              total: data.total,
+            });
+            refreshUnitsRef.current?.();
+          } else {
+            addToast({
+              title: 'Sync failed',
+              description: 'Unknown error',
+              type: 'error',
+            });
+          }
+        }
+      );
+    } catch (err) {
+      setUnitsProgress(null);
+      addToast({
+        title: 'Sync failed',
+        description: err instanceof Error ? err.message : 'Network error. Please try again.',
+        type: 'error',
+      });
+    } finally {
+      setUnitsSyncing(false);
+    }
+  }, [
+    session?.access_token,
+    addToast,
+    setUnitsSyncing,
+    setUnitsProgress,
+    setUnitsSyncResult,
+  ]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [onlyWithPeriod, setOnlyWithPeriod] = useState(true);
+  const [filterYear, setFilterYear] = useState<number | null>(null);
+  const [filterSemester, setFilterSemester] = useState<number | null>(null);
+  const [filterCodePrefixes, setFilterCodePrefixes] = useState<string[]>([]);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [availablePrefixes, setAvailablePrefixes] = useState<string[]>([]);
+  const didReadUrl = useRef(false);
+
+  const handleFilterOptions = useCallback((options: { years: number[]; prefixes: string[] }) => {
+    setAvailableYears(options.years);
+    setAvailablePrefixes(options.prefixes);
+  }, []);
+
+  // Read "Only with Period" from URL on load
+  useEffect(() => {
+    if (didReadUrl.current) return;
+    didReadUrl.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const v = params.get('onlyWithPeriod');
+    if (v !== null) setOnlyWithPeriod(v === '1');
+  }, []);
+
+  // Write "Only with Period" to URL when user changes it (skip initial mount)
+  const prevOnlyWithPeriod = useRef(onlyWithPeriod);
+  useEffect(() => {
+    if (prevOnlyWithPeriod.current === onlyWithPeriod) return;
+    prevOnlyWithPeriod.current = onlyWithPeriod;
+    const url = new URL(window.location.href);
+    url.searchParams.set('onlyWithPeriod', onlyWithPeriod ? '1' : '0');
+    window.history.replaceState({}, '', url.toString());
+  }, [onlyWithPeriod]);
 
   return (
     <main className="relative">
@@ -26,7 +120,28 @@ export default function UnitsPage() {
           </div>
 
           {/* Actions */}
-          <UnitsActions onRefresh={() => refreshUnitsRef.current?.()} />
+          <UnitsActions
+            onRefresh={() => refreshUnitsRef.current?.()}
+            onSync={handleSync}
+            syncing={unitsSyncing}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onlyWithPeriod={onlyWithPeriod}
+            onOnlyWithPeriodChange={setOnlyWithPeriod}
+            filterYear={filterYear}
+            onFilterYearChange={setFilterYear}
+            filterSemester={filterSemester}
+            onFilterSemesterChange={setFilterSemester}
+            filterCodePrefixes={filterCodePrefixes}
+            onFilterCodePrefixesChange={setFilterCodePrefixes}
+            availableYears={availableYears}
+            availablePrefixes={availablePrefixes}
+            onClearFilters={() => {
+              setFilterYear(null);
+              setFilterSemester(null);
+              setFilterCodePrefixes([]);
+            }}
+          />
 
           {/* Units Data with Suspense - This will show loading.tsx while loading */}
           <Suspense fallback={
@@ -54,7 +169,15 @@ export default function UnitsPage() {
               ))}
             </div>
           }>
-            <UnitsData onRefreshRequest={onRefreshRequest} />
+            <UnitsData
+            onRefreshRequest={onRefreshRequest}
+            onFilterOptions={handleFilterOptions}
+            searchQuery={searchQuery}
+            onlyWithPeriod={onlyWithPeriod}
+            filterYear={filterYear}
+            filterSemester={filterSemester}
+            filterCodePrefixes={filterCodePrefixes}
+          />
           </Suspense>
         </div>
       </SectionWrapper>
