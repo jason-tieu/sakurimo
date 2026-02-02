@@ -1,7 +1,7 @@
 /**
- * Proxy / middleware session refresh for Supabase SSR.
+ * Proxy session refresh for Supabase SSR.
  * Refreshes JWT via getClaims(), keeps server and browser cookies in sync.
- * Do not trust getSession() in server middleware; use getClaims() or getUser().
+ * Used by src/proxy.ts. Do not use getSession() for validation; use getClaims() or getUser().
  */
 
 import { createServerClient } from '@supabase/ssr';
@@ -35,21 +35,12 @@ export async function updateSession(request: NextRequest): Promise<{
     },
   });
 
-  // Refresh/validate JWT; do not use getSession() in server middleware
+  // Refresh/validate JWT; do not use getSession() in server proxy
   const { data: claimsData } = await supabase.auth.getClaims();
   const claims = claimsData?.claims;
   const hasUser = !!claims?.sub;
   const userId = claims?.sub;
   const userEmail = typeof claims?.email === 'string' ? claims.email : undefined;
-
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[supabase proxy]', {
-      path: request.nextUrl.pathname,
-      hasUser,
-      userId: userId ?? null,
-      userEmail: userEmail ?? null,
-    });
-  }
 
   return {
     response: supabaseResponse,

@@ -1,12 +1,15 @@
 'use client';
 
-import { Suspense, useRef } from 'react';
+import { Suspense, useRef, useCallback } from 'react';
 import SectionWrapper from '@/components/SectionWrapper';
 import { UnitsActions } from './units-actions';
 import { UnitsData } from './units-data';
 
 export default function UnitsPage() {
   const refreshUnitsRef = useRef<(() => void) | null>(null);
+  const onRefreshRequest = useCallback((refreshFn: () => void) => {
+    refreshUnitsRef.current = refreshFn;
+  }, []);
 
   return (
     <main className="relative">
@@ -51,7 +54,7 @@ export default function UnitsPage() {
               ))}
             </div>
           }>
-            <UnitsData onRefreshRequest={(refreshFn) => { refreshUnitsRef.current = refreshFn; }} />
+            <UnitsData onRefreshRequest={onRefreshRequest} />
           </Suspense>
         </div>
       </SectionWrapper>

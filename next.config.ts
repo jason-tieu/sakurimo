@@ -9,8 +9,8 @@ const withMDX = createMDX({
 });
 
 const nextConfig: NextConfig = {
-  // Remove static export to enable middleware and server-side features
-  // output: 'export', // Commented out to enable middleware
+  // Remove static export to enable proxy and server-side features
+  // output: 'export', // Commented out to enable proxy
   trailingSlash: true,
   images: {
     // Remove unoptimized for better performance with server-side rendering

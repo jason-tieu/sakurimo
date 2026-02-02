@@ -4,21 +4,25 @@ import { useState, useEffect } from 'react';
 import { Calendar, Clock, TrendingUp, BookOpen, AlertCircle } from 'lucide-react';
 import { mockDashboardStats, mockUpcomingItems } from '@/lib/mock';
 import { useStorage } from '@/lib/storageContext';
+import { useSession } from '@/lib/supabase/SupabaseProvider';
 import SectionWrapper from '@/components/SectionWrapper';
 import UIButton from '@/components/UIButton';
 
 export default function Dashboard() {
   const storage = useStorage();
+  const { isLoading } = useSession();
   const [stats] = useState(mockDashboardStats);
   const [upcomingItems] = useState(mockUpcomingItems);
-  const [storageStats, setStorageStats] = useState({
-    units: 0,
-    assignments: 0,
-    exams: 0,
-  });
+  const [storageStats, setStorageStats] = useState<{
+    units: number;
+    assignments: number;
+    exams: number;
+  } | null>(null);
 
-  // Load data from storage on mount
+  // Load synced counts from storage once session is ready
   useEffect(() => {
+    if (isLoading) return;
+
     const loadStorageData = async () => {
       try {
         const [units, assignments, exams] = await Promise.all([
@@ -26,18 +30,19 @@ export default function Dashboard() {
           storage.listAssignments(),
           storage.listExams(),
         ]);
-        
+
         setStorageStats({
           units: units.length,
           assignments: assignments.length,
           exams: exams.length,
         });
       } catch {
+        setStorageStats({ units: 0, assignments: 0, exams: 0 });
       }
     };
 
     loadStorageData();
-  }, [storage]);
+  }, [storage, isLoading]);
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-AU', {
@@ -114,10 +119,12 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Storage Stats Indicator */}
+          {/* Synced data indicator */}
           <div className="mt-4 text-center">
             <p className="text-xs text-muted-foreground">
-              Storage: {storageStats.units} units, {storageStats.assignments} assignments, {storageStats.exams} exams
+              {storageStats === null
+                ? 'Syncing…'
+                : `Synced: ${storageStats.units} units, ${storageStats.assignments} assignments, ${storageStats.exams} exams`}
             </p>
           </div>
 

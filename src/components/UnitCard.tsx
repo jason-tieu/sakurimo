@@ -1,19 +1,31 @@
 'use client';
 
+import { memo } from 'react';
 import { BookOpen } from 'lucide-react';
 import { Unit } from '@/lib/types';
 import { formatPeriod } from '@/lib/formatters/period';
 import { cleanUnitTitle } from '@/lib/formatters/unitTitle';
 import UIButton from '@/components/UIButton';
 
+const VIEW_DETAILS_BUTTON_STYLE: React.CSSProperties = {
+  ['--hover-bg' as string]: 'black',
+  ['--hover-text' as string]: 'white',
+};
+
 interface UnitCardProps {
   unit: Unit;
   onViewDetails: (unitId: string) => void;
 }
 
-export function UnitCard({ unit, onViewDetails }: UnitCardProps) {
+/** Fixed min-height for stable layout during virtualized scroll (avoids layout thrash). */
+const UNIT_CARD_MIN_HEIGHT = 220;
+
+function UnitCardInner({ unit, onViewDetails }: UnitCardProps) {
   return (
-    <div className="bg-card/50 border border-border rounded-2xl p-6 hover:bg-card/70 transition-colors duration-200">
+    <div
+      className="bg-card/50 border border-border rounded-2xl p-6 hover:bg-card/70 transition-colors duration-200"
+      style={{ minHeight: UNIT_CARD_MIN_HEIGHT }}
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="w-12 h-12 bg-brand/20 rounded-lg flex items-center justify-center">
           <BookOpen className="h-6 w-6 text-brand" />
@@ -45,10 +57,7 @@ export function UnitCard({ unit, onViewDetails }: UnitCardProps) {
           variant="secondary" 
           className="flex-1 text-sm px-3 py-1"
           onClick={() => onViewDetails(unit.id)}
-          style={{
-            '--hover-bg': 'black',
-            '--hover-text': 'white'
-          } as React.CSSProperties}
+          style={VIEW_DETAILS_BUTTON_STYLE}
         >
           View Details
         </UIButton>
@@ -59,3 +68,5 @@ export function UnitCard({ unit, onViewDetails }: UnitCardProps) {
     </div>
   );
 }
+
+export const UnitCard = memo(UnitCardInner);

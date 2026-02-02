@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Unit } from '@/lib/types';
 import { useStorage } from '@/lib/storageContext';
 import { useSession } from '@/lib/supabase/SupabaseProvider';
@@ -9,6 +9,8 @@ import { UnitsList } from './units-list';
 interface UnitsDataProps {
   onRefreshRequest?: (refreshFn: () => void) => void;
 }
+
+const DEV = process.env.NODE_ENV === 'development';
 
 export function UnitsData({ onRefreshRequest }: UnitsDataProps) {
   const storage = useStorage();
@@ -26,8 +28,10 @@ export function UnitsData({ onRefreshRequest }: UnitsDataProps) {
         if (isLoading) {
           return;
         }
-        
+        if (DEV) console.time('UnitsData: Supabase fetch (storage.listUnits)');
         const storageUnits = await storage.listUnits();
+        if (DEV) console.timeEnd('UnitsData: Supabase fetch (storage.listUnits)');
+        if (DEV) console.log('[UnitsData] units count:', storageUnits.length);
         setUnits(storageUnits);
         setHasInitiallyLoaded(true);
       } catch {

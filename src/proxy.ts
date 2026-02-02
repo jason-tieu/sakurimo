@@ -24,7 +24,7 @@ const PROTECTED_ROUTES = [
   '/settings',
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { response, hasUser } = await updateSession(request);
   const pathname = request.nextUrl.pathname;
 
@@ -51,7 +51,7 @@ export async function middleware(request: NextRequest) {
     const signInUrl = new URL('/auth/sign-in', request.url);
     signInUrl.searchParams.set('next', pathname);
     const redirect = NextResponse.redirect(signInUrl);
-    // Copy cookies from proxy response so refresh state is preserved
+    // Copy cookies from session response so refresh state is preserved
     response.cookies.getAll().forEach(({ name, value, ...opts }) => {
       redirect.cookies.set(name, value, opts);
     });
